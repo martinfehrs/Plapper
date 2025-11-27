@@ -95,26 +95,20 @@ namespace plapper
                         pos = 0;
                     }
 
-                    if (auto entry = this->dict.find(word); entry != nullptr)
+                    if (auto const entry = this->dict.find(word); entry != nullptr)
                     {
-                        auto stat = entry->xt(*this, entry->data());
-
-                        if (stat != error_status::success)
-                        {
-                            std::println("{}", error_message_for(stat));
-                            this->dstack.clear();
-                        }
-
                         if (this->state == yes)
                         {
                             if (!this->dict.append(&entry->xt))
                             {
                                 std::println("{}", error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
+                                continue;
                             }
                         }
                         else if (
-                            auto stat = entry->xt(*this, entry->data()); stat != error_status::success
+                            const auto stat = entry->xt(*this, entry->data());
+                            stat != error_status::success
                         )
                         {
                             std::println("{}", error_message_for(stat));
@@ -147,6 +141,7 @@ namespace plapper
                             {
                                 std::println("{}", error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
+                                continue;
                             }
 
                             if (!this->dict.append(value))
