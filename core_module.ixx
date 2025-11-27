@@ -1,6 +1,6 @@
 module;
 
-#include <string_view>
+#include <string>
 #include <variant>
 
 export module plapper:core_module;
@@ -13,8 +13,8 @@ namespace plapper
 
     struct module_entry
     {
-        std::string_view word;
-        execution_token_t xt;
+        std::string word;
+        execution_token_t impl;
         bool immediate;
         std::variant<int_t, uint_t, int_t*, uint_t*> data;
     };
