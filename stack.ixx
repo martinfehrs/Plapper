@@ -21,8 +21,7 @@ namespace plapper
     template <std::size_t extent>
     struct size_storage
     {
-        consteval size_storage() noexcept
-        { };
+        consteval size_storage() noexcept = default;
 
         static constexpr std::size_t size_ = extent;
     };
