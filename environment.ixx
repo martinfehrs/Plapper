@@ -1,7 +1,5 @@
 module;
 
-#include <cstddef>
-#include <expected>
 #include <utility>
 
 export module plapper:environment;
@@ -27,7 +25,7 @@ namespace plapper
 
         environment(dictionary dict, data_stack dstack, return_stack rstack) noexcept
             : dict(std::move(dict))
-          , dstack(std::move(dstack))
+            , dstack(std::move(dstack))
             , rstack(std::move(rstack))
         { }
 
