@@ -15,6 +15,10 @@ namespace plapper
 
     public:
 
+        input_buffer()
+            : position{ 0 }
+        { }
+
         static constexpr char delimiters[]{ ' ', '\t', '\n' };
 
         void clear() {
@@ -22,7 +26,7 @@ namespace plapper
             this->position = 0;
         }
 
-        void reset(std::span<const char*> words)
+        void reset(const std::span<const char*> words)
         {
             this->clear();
 
@@ -86,7 +90,7 @@ namespace plapper
             const auto word_offset = this->position;
 
             if (
-                const auto delim_pos = this->buffer.find_first_of(this->delimiters, this->position);
+                const auto delim_pos = this->buffer.find_first_of(delimiters, this->position);
                 delim_pos != std::string_view::npos)
             {
                 this->position = delim_pos;
