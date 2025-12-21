@@ -39,7 +39,7 @@ namespace plapper
         if (!n)
             return error_status::stack_underflow;
 
-        auto values = env.dstack.get_n(1, *n + 1);
+        auto values = env.dstack.access(1, *n + 1);
 
         if (!values)
             return error_status::stack_underflow;
