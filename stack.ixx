@@ -12,6 +12,7 @@ module;
 export module plapper:stack;
 
 import :error;
+import :constant_size_literals;
 
 namespace rng = std::ranges;
 
@@ -484,10 +485,12 @@ namespace plapper
             return action(*(self.data_ + self.size_ - 1));
         }
 
-        template <std::size_t count, std::size_t... indices>
-        error_status for_args_impl(this auto& self, auto action, std::index_sequence<indices...>) noexcept
+        template <std::size_t count_, std::size_t... indices>
+        error_status for_args_impl(
+            this auto& self, size_constant<count_> count, auto action, std::index_sequence<indices...>
+        ) noexcept
         {
-            auto range = self.template top_n<count>();
+            auto range = self.template top_n(count);
 
             if (!range)
                 return error_status::stack_underflow;
@@ -495,10 +498,10 @@ namespace plapper
             return action(range[indices]...);
         }
 
-        template <std::size_t count>
-        error_status for_args(this auto& self, auto action) noexcept
+        template <std::size_t count_>
+        error_status for_args(this auto& self, size_constant<count_> count, auto action) noexcept
         {
-            return self.template for_args_impl<count>(action, std::make_index_sequence<count>{});
+            return self.template for_args_impl(count, action, std::make_index_sequence<count>{});
         }
 
         [[nodiscard]] auto nth(this auto& self, size_type pos) noexcept
@@ -522,7 +525,7 @@ namespace plapper
         }
 
         template <size_type count>
-        [[nodiscard]] auto get_n(this auto& self, size_type start) noexcept
+        [[nodiscard]] auto get_n(this auto& self, size_type start, size_constant<count>) noexcept
             ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
         {
             if (self.size_ < start + count)
@@ -555,7 +558,7 @@ namespace plapper
         }
 
         template <size_type count>
-        [[nodiscard]] auto top_n(this auto& self) noexcept
+        [[nodiscard]] auto top_n(this auto& self, size_constant<count>) noexcept
             -> stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
         {
             if (self.size_ < count)

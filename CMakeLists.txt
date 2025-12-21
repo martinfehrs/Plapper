@@ -34,6 +34,7 @@ target_sources(PlapperLib
         core_module.ixx
         interpreter.ixx
         settings.ixx
+        constant_size_literals.ixx
 )
 
 target_include_directories(PlapperLib PRIVATE ${Boost_INCLUDE_DIRS})

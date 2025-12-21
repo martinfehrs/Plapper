@@ -14,3 +14,4 @@ export import :core_types;
 export import :core_module;
 export import :interpreter;
 export import :settings;
+export import :constant_size_literals;
