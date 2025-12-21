@@ -536,16 +536,6 @@ namespace plapper
             return { last - count };
         }
 
-        error_status for_top_2(auto action) noexcept
-        {
-            auto range = this->top_n<2>();
-
-            if (!range)
-                return error_status::stack_underflow;
-
-            return action(range[0], range[1]);
-        }
-
         [[nodiscard]] auto top_n(this auto& self, size_type count) noexcept
             ->  stack_range<std::remove_pointer_t<decltype(self.data_)>>
         {
