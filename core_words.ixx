@@ -30,7 +30,7 @@ namespace plapper
 
         **a_addr_ptr = *x_ptr;
 
-        env.dstack.unchecked_pop(2);
+        env.dstack.pop_n_unchecked(2);
 
         return error_status::success;
     }
@@ -59,7 +59,7 @@ namespace plapper
 
     export error_status plus(environment& env, void*) noexcept
     {
-        const auto n_range = env.dstack.top(2_cuz);
+        const auto n_range = env.dstack.top_n(2_cuz);
 
         if (!n_range)
             return error_status::stack_underflow;
@@ -69,13 +69,13 @@ namespace plapper
 
     export error_status plus_store(environment& env, void*) noexcept
     {
-        const auto range = env.dstack.top(2_cuz);
+        const auto range = env.dstack.top_n(2_cuz);
 
         if (!range)
             return error_status::stack_underflow;
 
         *reinterpret_cast<int_t*>(range[1]) += range[0];
-        env.dstack.unchecked_pop(2);
+        env.dstack.pop_n_unchecked(2);
 
         return error_status::success;
     }
@@ -90,14 +90,14 @@ namespace plapper
         if (!env.dict.append(*x_ptr))
             return error_status::out_of_memory;
 
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
 
     export error_status minus(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -113,14 +113,14 @@ namespace plapper
             return error_status::stack_underflow;
 
         env.tob.write(std::format("{}", *sptr));
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
 
     export error_status divide(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -133,7 +133,7 @@ namespace plapper
 
     export error_status divide_mod(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -197,14 +197,14 @@ namespace plapper
         if (!a_addr_ptr)
             return error_status::stack_underflow;
 
-        const auto x_range = env.dstack.access(1, 2_cuz);
+        const auto x_range = env.dstack.access_n(1, 2_cuz);
 
         if (!x_range)
             return error_status::stack_underflow;
 
         rng::copy(x_range, *a_addr_ptr);
 
-        env.dstack.unchecked_pop(3);
+        env.dstack.pop_n_unchecked(3);
 
         return error_status::success;
     }
@@ -247,12 +247,12 @@ namespace plapper
 
     export error_status two_drop(environment& env, void*) noexcept
     {
-        return env.dstack.pop(2);
+        return env.dstack.pop_n(2);
     }
 
     export error_status two_dupe(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -262,7 +262,7 @@ namespace plapper
 
     export error_status two_over(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(4_cuz);
+        const auto srange = env.dstack.top_n(4_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -272,7 +272,7 @@ namespace plapper
 
     export error_status two_swap(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(4_cuz);
+        const auto srange = env.dstack.top_n(4_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -313,7 +313,7 @@ namespace plapper
         if (const auto ptr = env.rstack.top())
         {
             env.instruction_ptr = *ptr;
-            env.rstack.unchecked_pop();
+            env.rstack.pop_unchecked();
         }
         else
             env.instruction_ptr = nullptr;
@@ -335,7 +335,7 @@ namespace plapper
 
     export error_status less_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -345,7 +345,7 @@ namespace plapper
 
     export error_status equals(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -355,7 +355,7 @@ namespace plapper
 
     export error_status greater_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -427,14 +427,14 @@ namespace plapper
         if (const auto* mem = env.dict.allot<byte_t>(*sptr); !mem)
             return error_status::out_of_memory;
 
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
 
     export error_status and_(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -535,7 +535,7 @@ namespace plapper
         if (!data)
             return error_status::out_of_memory;
 
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
@@ -615,7 +615,7 @@ namespace plapper
             return error_status::out_of_character_range;
 
         env.tob.write(static_cast<char>(*sptr));
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
@@ -651,7 +651,7 @@ namespace plapper
 
     export error_status m_star(environment& env, void*) noexcept
     {
-        const auto n_range = env.dstack.top(2_cuz);
+        const auto n_range = env.dstack.top_n(2_cuz);
 
         if (!n_range)
             return error_status::stack_underflow;
@@ -661,7 +661,7 @@ namespace plapper
 
     export error_status max(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -671,7 +671,7 @@ namespace plapper
 
     export error_status min(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -681,7 +681,7 @@ namespace plapper
 
     export error_status mod(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -706,7 +706,7 @@ namespace plapper
 
     export error_status or_(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -716,7 +716,7 @@ namespace plapper
 
     export error_status over(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -726,7 +726,7 @@ namespace plapper
 
     export error_status rote(environment& env, void*) noexcept
     {
-        auto srange = env.dstack.top(3_cuz);
+        auto srange = env.dstack.top_n(3_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -768,7 +768,7 @@ namespace plapper
             return error_status::stack_underflow;
 
         env.tob.write(' ', *sptr);
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
@@ -780,7 +780,7 @@ namespace plapper
 
     export error_status swap(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -804,7 +804,7 @@ namespace plapper
 
         env.tob.write({ *c_addr_ptr, *u_ptr });
 
-        env.dstack.unchecked_pop(2);
+        env.dstack.pop_n_unchecked(2);
 
         return error_status::success;
     }
@@ -823,7 +823,7 @@ namespace plapper
 
     export error_status u_less_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top(2_cuz);
+        const auto srange = env.dstack.top_n(2_cuz);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -871,7 +871,7 @@ namespace plapper
 
     export error_status xor_(environment& env, void*) noexcept
     {
-        const auto x_range = env.dstack.top(2_cuz);
+        const auto x_range = env.dstack.top_n(2_cuz);
 
         if (!x_range)
             return error_status::stack_underflow;

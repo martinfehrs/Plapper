@@ -39,14 +39,14 @@ namespace plapper
         if (!n)
             return error_status::stack_underflow;
 
-        auto values = env.dstack.access(1, *n + 1);
+        auto values = env.dstack.access_n(1, *n + 1);
 
         if (!values)
             return error_status::stack_underflow;
 
         rng::rotate(values, rng::next(rng::begin(values)));
 
-        env.dstack.unchecked_pop();
+        env.dstack.pop_unchecked();
 
         return error_status::success;
     }
