@@ -37,24 +37,26 @@ namespace plapper
 
     export error_status times_divide(environment& env, void*) noexcept
     {
-        return env.dstack.for_args(
-            3_cuz,
-            [&env](const dint_t n1, const dint_t n2, const dint_t n3)
-            {
-                return env.dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
-            }
+        auto const n_range = env.dstack.top_n(3_cuz);
+
+        if (!n_range)
+            return error_status::stack_underflow;
+
+        return env.dstack.replace<3>(
+            static_cast<int_t>(
+                static_cast<dint_t>(n_range[0]) * static_cast<dint_t>(n_range[1]) / static_cast<dint_t>(n_range[2])
+            )
         );
     }
 
     export error_status times(environment& env, void*) noexcept
     {
-        return env.dstack.for_args(
-            2_cuz,
-            [&env](const auto n1, const auto n2)
-            {
-                return env.dstack.replace<2>(n1 * n2);
-            }
-        );
+        auto const n_range = env.dstack.top_n(2_cuz);
+
+        if (!n_range)
+            return error_status::stack_underflow;
+
+        return env.dstack.replace<2>(n_range[0] * n_range[1]);
     }
 
     export error_status plus(environment& env, void*) noexcept

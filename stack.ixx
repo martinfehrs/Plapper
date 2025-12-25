@@ -476,33 +476,6 @@ namespace plapper
             return { self.data_ + self.size_ - 1 };
         }
 
-        error_status for_top(this auto& self, auto action) noexcept
-        {
-            if (self.empty())
-                return error_status::stack_underflow;
-
-            return action(*(self.data_ + self.size_ - 1));
-        }
-
-        template <std::size_t count_, std::size_t... indices>
-        error_status for_args_impl(
-            this auto& self, size_constant<count_> count, auto action, std::index_sequence<indices...>
-        ) noexcept
-        {
-            auto range = self.top_n(count);
-
-            if (!range)
-                return error_status::stack_underflow;
-
-            return action(range[indices]...);
-        }
-
-        template <std::size_t count_>
-        error_status for_args(this auto& self, size_constant<count_> count, auto action) noexcept
-        {
-            return self.template for_args_impl(count, action, std::make_index_sequence<count>{});
-        }
-
         [[nodiscard]] auto access(this auto& self, size_type pos) noexcept
             -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>>
         {
