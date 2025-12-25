@@ -337,12 +337,6 @@ namespace plapper
             return !((*this) == that);
         }
 
-        template <compatible_stack_value<value_type> ... Values, std::size_t... indices>
-        void push_impl(std::index_sequence<indices...>, Values... values) noexcept
-        {
-            ((this->data_[this->size_ + indices] = values), ...);
-        }
-
         template <compatible_stack_value<value_type> ... Values>
         void push_unchecked(Values... values) noexcept
         {
@@ -530,6 +524,12 @@ namespace plapper
         }
 
     private:
+
+        template <compatible_stack_value<value_type> ... Values, std::size_t... indices>
+        void push_impl(std::index_sequence<indices...>, Values... values) noexcept
+        {
+            ((this->data_[this->size_ + indices] = values), ...);
+        }
 
         void swap(stack& that) noexcept
         {
