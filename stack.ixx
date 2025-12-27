@@ -225,6 +225,24 @@ namespace plapper
             return stack_pointer{ this->element_addr + offset };
         }
 
+        template<typename Func> requires std::is_invocable_r_v<void, Func, Element&>
+                                      || std::is_invocable_r_v<error_status, Func, Element&>
+        [[nodiscard]] error_status apply(Func func) const noexcept
+        {
+            if (!this->element_addr)
+                return error_status::stack_underflow;
+
+            if constexpr (std::same_as<std::invoke_result_t<Func, Element &>, void>)
+            {
+                func(*this->element_addr);
+                return error_status::success;
+            }
+            else
+            {
+                return func(*this->element_addr);
+            }
+        }
+
     private:
 
         pointer element_addr;

@@ -18,21 +18,19 @@ namespace plapper
 
     export error_status store(environment& env, void*) noexcept
     {
-        const auto a_addr_ptr = env.dstack.top().as<int_t*>();
+        return env.dstack.top().as<int_t*>().apply(
+            [&env](auto a_addr)
+            {
+                return env.dstack.access(1).apply(
+                    [&env, a_addr](auto x)
+                    {
+                        *a_addr = x;
 
-        if (!a_addr_ptr)
-            return error_status::stack_underflow;
-
-        const auto x_ptr = env.dstack.access(1);
-
-        if (!x_ptr)
-            return error_status::stack_underflow;
-
-        **a_addr_ptr = *x_ptr;
-
-        env.dstack.pop_n_unchecked(2);
-
-        return error_status::success;
+                        env.dstack.pop_n_unchecked(2);
+                    }
+                );
+            }
+        );
     }
 
     export error_status times_divide(environment& env, void*) noexcept
@@ -84,17 +82,17 @@ namespace plapper
 
     export error_status comma(environment& env, void*) noexcept
     {
-        auto x_ptr = env.dstack.top();
+        return env.dstack.top().apply(
+            [&env](const auto& x)
+            {
+                if (!env.dict.append(x))
+                    return error_status::out_of_memory;
 
-        if (!x_ptr)
-            return error_status::stack_underflow;
+                env.dstack.pop_unchecked();
 
-        if (!env.dict.append(*x_ptr))
-            return error_status::out_of_memory;
-
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export error_status minus(environment& env, void*) noexcept
@@ -109,15 +107,13 @@ namespace plapper
 
     export error_status dot(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        env.tob.write(std::format("{}", *sptr));
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+        return env.dstack.top().apply(
+            [&env](const auto& n)
+            {
+                env.tob.write(std::format("{}", n));
+                env.dstack.pop_unchecked();
+            }
+        );
     }
 
     export error_status divide(environment& env, void*) noexcept
@@ -150,101 +146,61 @@ namespace plapper
 
     export error_status zero_less(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<1>(*sptr < 0 ? yes : no);
+        return env.dstack.top().apply([](auto& x){ x = x < 0 ? yes : no; });
     }
 
     export error_status zero_equals(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<1>(*sptr == 0 ? yes : no);
+        return env.dstack.top().apply([](auto& x){ x = x == 0 ? yes : no; });
     }
 
     export error_status one_plus(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr += 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n += 1; });
     }
 
     export error_status one_minus(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr -= 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n -= 1; });
     }
 
     export error_status two_store(environment& env, void*) noexcept
     {
-        const auto a_addr_ptr = env.dstack.top().as<int_t*>();
+        return env.dstack.top().as<int_t*>().apply(
+            [&env](auto a_addr)
+            {
+                const auto x_range = env.dstack.access_n(1, 2_cuz);
 
-        if (!a_addr_ptr)
-            return error_status::stack_underflow;
+                if (!x_range)
+                    return error_status::stack_underflow;
 
-        const auto x_range = env.dstack.access_n(1, 2_cuz);
+                rng::copy(x_range, a_addr);
 
-        if (!x_range)
-            return error_status::stack_underflow;
+                env.dstack.pop_n_unchecked(3);
 
-        rng::copy(x_range, *a_addr_ptr);
-
-        env.dstack.pop_n_unchecked(3);
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export error_status two_star(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr <<= 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& x){ x <<= 1; });
     }
 
     export error_status two_slash(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr >>= 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& x){ x >>= 1; });
     }
 
     export error_status two_fetch(environment& env, void*) noexcept
     {
-        const auto a_addr_ptr = env.dstack.top().as<int_t*>();
-
-        if (!a_addr_ptr)
-            return error_status::stack_underflow;
-
-        const auto a_addr = *a_addr_ptr;
-
-        return env.dstack.replace<1>(a_addr[0], a_addr[1]);
+        return env.dstack.top().as<int_t*>().apply(
+            [&env](auto& a_addr)
+            {
+                return env.dstack.replace<1>(a_addr[0], a_addr[1]);
+            }
+        );
     }
 
     export error_status two_drop(environment& env, void*) noexcept
@@ -367,71 +323,56 @@ namespace plapper
 
     export error_status question_dupe(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        if (*sptr)
-            return env.dstack.push(*sptr);
-
-        return error_status::success;
+        return env.dstack.top().apply(
+            [&env](const auto& x){ return x ? env.dstack.push(x) : error_status::success; }
+        );
     }
 
     export error_status fetch(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as<int_t*>();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<1>(**sptr);
+        return env.dstack.top().as<int_t*>().apply(
+            [&env](auto a_addr)
+            {
+                return env.dstack.replace<1>(*a_addr);
+            }
+        );
     }
 
     export error_status abs(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr = std::abs(*sptr);
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n = std::abs(n); });
     }
 
     export error_status aligned(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
+        return env.dstack.top().apply(
+            [](auto& a_addr)
+            {
+                auto offset = a_addr % cell_size;
 
-        if (!sptr)
-            return error_status::stack_underflow;
+                if (offset == 0)
+                    return;
 
-        auto offset = *sptr % cell_size;
+                offset = cell_size - offset;
 
-        if (offset == 0)
-            return error_status::success;
-
-        offset = cell_size - offset;
-
-        *sptr += offset;
-
-        return error_status::success;
+                a_addr += offset;
+            }
+        );
     }
 
     export error_status allot(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
+        return env.dstack.top().apply(
+            [&env](const auto& n)
+            {
+                if (const auto* mem = env.dict.allot<byte_t>(n); !mem)
+                    return error_status::out_of_memory;
 
-        if (!sptr)
-            return error_status::stack_underflow;
+                env.dstack.pop_unchecked();
 
-        if (const auto* mem = env.dict.allot<byte_t>(*sptr); !mem)
-            return error_status::out_of_memory;
-
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export error_status and_(environment& env, void*) noexcept
@@ -456,26 +397,12 @@ namespace plapper
 
     export error_status cell_plus(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr += cell_size;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& a_addr){ a_addr += cell_size; });
     }
 
     export error_status cells(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr = cell_size;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n = cell_size; });
     }
 
     export error_status char_(environment& env, void*) noexcept
@@ -490,26 +417,12 @@ namespace plapper
 
     export error_status char_plus(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr += char_size;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& c_addr){ c_addr += char_size; });
     }
 
     export error_status chars(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr = char_size;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n = char_size; });
     }
 
     error_status constant__(environment& env, void* data) noexcept
@@ -519,27 +432,28 @@ namespace plapper
 
     export error_status constant_(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
+        return env.dstack.top().apply(
+            [&env](auto x)
+            {
+                const auto word = env.tib.read_word();
 
-        if (!sptr)
-            return error_status::stack_underflow;
+                if (word.empty())
+                    return error_status::out_of_words;
 
-        const auto word = env.tib.read_word();
+                const auto data = env.dict.create(
+                    static_cast<std::string>(word),
+                    constant__,
+                    x
+                );
 
-        if (word.empty())
-            return error_status::out_of_words;
+                if (!data)
+                    return error_status::out_of_memory;
 
-        const auto data = env.dict.create(
-            static_cast<std::string>(word),
-            constant__,
-            *sptr);
+                env.dstack.pop_unchecked();
 
-        if (!data)
-            return error_status::out_of_memory;
-
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export error_status count(environment& env, void*) noexcept
@@ -629,26 +543,12 @@ namespace plapper
 
     export error_status invert(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr = ~*sptr;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& x){ x = ~x; });
     }
 
     export error_status l_shift(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr <<= 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& x){ x <<= 1; });
     }
 
     export error_status m_star(environment& env, void*) noexcept
@@ -696,14 +596,7 @@ namespace plapper
 
     export error_status negate(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr = -*sptr;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& n){ n = -n; });
     }
 
     export error_status or_(environment& env, void*) noexcept
@@ -740,14 +633,7 @@ namespace plapper
 
     export error_status r_shift(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        *sptr >>= 1;
-
-        return error_status::success;
+        return env.dstack.top().apply([](auto& x){ x >>= 1; });
     }
 
     export error_status s_to_d(environment& env, void*) noexcept
@@ -764,15 +650,13 @@ namespace plapper
 
     export error_status spaces(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        env.tob.write(' ', *sptr);
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+        return env.dstack.top().apply(
+            [&env](const auto& n)
+            {
+                env.tob.write(' ', n);
+                env.dstack.pop_unchecked();
+            }
+        );
     }
 
     export error_status state(environment& env, void*) noexcept
@@ -794,33 +678,28 @@ namespace plapper
 
     export error_status type(environment& env, void*) noexcept
     {
-        const auto u_ptr = env.dstack.top().as<std::size_t>();
-
-        if (!u_ptr)
-            return error_status::stack_underflow;
-
-        const auto c_addr_ptr = env.dstack.access(1).as<const char*>();
-
-        if (!c_addr_ptr)
-            return error_status::stack_underflow;
-
-        env.tob.write({ *c_addr_ptr, *u_ptr });
-
-        env.dstack.pop_n_unchecked(2);
-
-        return error_status::success;
+        return env.dstack.top().as<uint_t>().apply(
+            [&env](const auto u)
+            {
+                return env.dstack.access(1).as<const char*>().apply(
+                    [&env, u](auto c_addr)
+                    {
+                        env.tob.write({ c_addr, u });
+                        env.dstack.pop_n_unchecked(2);
+                    }
+                );
+            }
+        );
     }
 
     export error_status u_dot(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        env.tob.write(std::format("{}", static_cast<uint_t>(*sptr)));
-
-        return error_status::success;
+        return env.dstack.top().as<uint_t>().apply(
+            [&env](auto& u)
+            {
+                env.tob.write(std::format("{}", u));
+            }
+        );
     }
 
     export error_status u_less_than(environment& env, void*) noexcept
@@ -856,19 +735,19 @@ namespace plapper
 
     export error_status word(environment& env, void*) noexcept
     {
-        const auto char_ptr = env.dstack.top().as<const char>();
+        return env.dstack.top().as<char>().apply(
+            [&env](const char char_)
+            {
+                const auto word = env.tib.read_until(char_);
 
-        if (!char_ptr)
-            return error_status::stack_underflow;
+                static char_t string_storage[256];
 
-        const auto word = env.tib.read_until(*char_ptr);
+                string_storage[0] = word.size();
+                std::memcpy(string_storage + 1, word.data(), word.size());
 
-        static char_t string_storage[256];
-
-        string_storage[0] = word.size();
-        std::memcpy(string_storage + 1, word.data(), word.size());
-
-        return env.dstack.replace<1>(reinterpret_cast<int_t>(string_storage));
+                return env.dstack.replace<1>(reinterpret_cast<int_t>(string_storage));
+            }
+        );
     }
 
     export error_status xor_(environment& env, void*) noexcept

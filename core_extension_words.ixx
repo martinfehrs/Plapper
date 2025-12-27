@@ -17,12 +17,7 @@ namespace plapper
 
     export error_status zero_greater(environment& env, void*) noexcept
     {
-        if (!env.dstack.has(1))
-            return error_status::stack_underflow;
-
-        env.dstack[0] = (env.dstack[0] > 0 ? yes : no);
-
-        return error_status::success;
+        return env.dstack.top().apply([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
     }
 
     export error_status hex(environment& env, void*) noexcept
@@ -34,21 +29,20 @@ namespace plapper
 
     export error_status roll(environment& env, void*) noexcept
     {
-        const stack_pointer n = env.dstack.top();
+        return env.dstack.top().apply(
+            [&env](auto n)
+            {
+                auto values = env.dstack.access_n(1, n + 1);
 
-        if (!n)
-            return error_status::stack_underflow;
+                if (!values)
+                    return error_status::stack_underflow;
 
-        auto values = env.dstack.access_n(1, *n + 1);
+                rng::rotate(values, rng::next(rng::begin(values)));
+                env.dstack.pop_unchecked();
 
-        if (!values)
-            return error_status::stack_underflow;
-
-        rng::rotate(values, rng::next(rng::begin(values)));
-
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export class core_extension_words_t
