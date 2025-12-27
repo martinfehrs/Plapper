@@ -458,16 +458,12 @@ namespace plapper
 
     export error_status count(environment& env, void*) noexcept
     {
-        const auto c_addr_1_ptr = env.dstack.top().as<const char_t*>();
-
-        if (!c_addr_1_ptr)
-            return error_status::stack_underflow;
-
-        const auto c_addr_1 = *c_addr_1_ptr;
-        const int_t u = c_addr_1[0];
-        const char_t* c_addr_2 = c_addr_1 + 1;
-
-        return env.dstack.replace<1>(reinterpret_cast<int_t>(c_addr_2), u);
+        return env.dstack.top().as<const char_t*>().apply(
+            [&env](auto c_addr)
+            {
+                return env.dstack.replace<1>(reinterpret_cast<int_t>(c_addr + 1), c_addr[0]);
+            }
+        );
     }
 
     export error_status c_r(environment& env, void*) noexcept
@@ -512,28 +508,28 @@ namespace plapper
 
     export error_status dupe(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
-
-        if (!sptr)
-            return error_status::stack_underflow;
-
-        return env.dstack.push(*sptr);
+        return env.dstack.top().apply(
+            [&env](auto x)
+            {
+                return env.dstack.push(x);
+            }
+        );
     }
 
     export error_status emit(environment& env, void*) noexcept
     {
-        const auto sptr = env.dstack.top().as_const();
+        return env.dstack.top().apply(
+            [&env](auto x)
+            {
+                if (x < 0 || x > 127)
+                    return error_status::out_of_character_range;
 
-        if (!sptr)
-            return error_status::stack_underflow;
+                env.tob.write(static_cast<char>(x));
+                env.dstack.pop_unchecked();
 
-        if (*sptr < 0 || *sptr > 127)
-            return error_status::out_of_character_range;
-
-        env.tob.write(static_cast<char>(*sptr));
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+                return error_status::success;
+            }
+        );
     }
 
     export error_status here(environment& env, void*) noexcept
