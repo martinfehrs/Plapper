@@ -402,7 +402,7 @@ namespace plapper
 
     export error_status cells(environment& env, void*) noexcept
     {
-        return env.dstack.top().apply([](auto& n){ n = cell_size; });
+        return env.dstack.top().apply([](auto& n){ n *= cell_size; });
     }
 
     export error_status char_(environment& env, void*) noexcept
@@ -422,7 +422,7 @@ namespace plapper
 
     export error_status chars(environment& env, void*) noexcept
     {
-        return env.dstack.top().apply([](auto& n){ n = char_size; });
+        return env.dstack.top().apply([](auto& n){ n *= char_size; });
     }
 
     error_status constant__(environment& env, void* data) noexcept
@@ -544,7 +544,12 @@ namespace plapper
 
     export error_status l_shift(environment& env, void*) noexcept
     {
-        return env.dstack.top().apply([](auto& x){ x <<= 1; });
+        return env.dstack.top().apply(
+            [&env](auto& x)
+            {
+                return env.dstack.access(1).apply([&x](const auto u){ x <<= u; });
+            }
+        );
     }
 
     export error_status m_star(environment& env, void*) noexcept
@@ -629,7 +634,12 @@ namespace plapper
 
     export error_status r_shift(environment& env, void*) noexcept
     {
-        return env.dstack.top().apply([](auto& x){ x >>= 1; });
+        return env.dstack.top().apply(
+            [&env](auto& x)
+            {
+                return env.dstack.access(1).apply([&x](const auto u){ x >>= u; });
+            }
+        );
     }
 
     export error_status s_to_d(environment& env, void*) noexcept
