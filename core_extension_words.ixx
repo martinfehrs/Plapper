@@ -30,7 +30,7 @@ namespace plapper
     export error_status roll(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](auto n)
+            [&env](const auto n)
             {
                 auto values = env.dstack.access_n(1, n + 1);
 

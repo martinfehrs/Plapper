@@ -19,10 +19,10 @@ namespace plapper
     export error_status store(environment& env, void*) noexcept
     {
         return env.dstack.top().as<int_t*>().apply(
-            [&env](auto a_addr)
+            [&env](const auto a_addr)
             {
                 return env.dstack.access(1).apply(
-                    [&env, a_addr](auto x)
+                    [&env, a_addr](const auto x)
                     {
                         *a_addr = x;
 
@@ -83,7 +83,7 @@ namespace plapper
     export error_status comma(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](const auto& x)
+            [&env](const auto x)
             {
                 if (!env.dict.append(x))
                     return error_status::out_of_memory;
@@ -108,7 +108,7 @@ namespace plapper
     export error_status dot(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](const auto& n)
+            [&env](const auto n)
             {
                 env.tob.write(std::format("{}", n));
                 env.dstack.pop_unchecked();
@@ -167,7 +167,7 @@ namespace plapper
     export error_status two_store(environment& env, void*) noexcept
     {
         return env.dstack.top().as<int_t*>().apply(
-            [&env](auto a_addr)
+            [&env](const auto a_addr)
             {
                 const auto x_range = env.dstack.access_n(1, 2_cuz);
 
@@ -196,7 +196,7 @@ namespace plapper
     export error_status two_fetch(environment& env, void*) noexcept
     {
         return env.dstack.top().as<int_t*>().apply(
-            [&env](auto& a_addr)
+            [&env](const auto a_addr)
             {
                 return env.dstack.replace<1>(a_addr[0], a_addr[1]);
             }
@@ -324,7 +324,7 @@ namespace plapper
     export error_status question_dupe(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](const auto& x){ return x ? env.dstack.push(x) : error_status::success; }
+            [&env](const auto x){ return x ? env.dstack.push(x) : error_status::success; }
         );
     }
 
@@ -363,7 +363,7 @@ namespace plapper
     export error_status allot(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](const auto& n)
+            [&env](const auto n)
             {
                 if (const auto* mem = env.dict.allot<byte_t>(n); !mem)
                     return error_status::out_of_memory;
@@ -651,7 +651,7 @@ namespace plapper
     export error_status spaces(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](const auto& n)
+            [&env](const auto n)
             {
                 env.tob.write(' ', n);
                 env.dstack.pop_unchecked();
@@ -695,7 +695,7 @@ namespace plapper
     export error_status u_dot(environment& env, void*) noexcept
     {
         return env.dstack.top().as<uint_t>().apply(
-            [&env](auto& u)
+            [&env](auto u)
             {
                 env.tob.write(std::format("{}", u));
             }
