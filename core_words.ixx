@@ -741,7 +741,7 @@ namespace plapper
 
     export error_status word(environment& env, void*) noexcept
     {
-        return env.dstack.top().as<char>().apply(
+        return env.dstack.top().as<uint_t>().apply(
             [&env](const char char_)
             {
                 const auto word = env.tib.read_until(char_);

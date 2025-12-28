@@ -13,6 +13,7 @@ export module plapper:stack;
 
 import :error;
 import :constant_size_literals;
+import :core_constants;
 
 namespace rng = std::ranges;
 
@@ -42,29 +43,116 @@ namespace plapper
     };
 
     template <typename Value>
-    concept stack_element = requires
-    {
-        requires std::same_as<std::remove_volatile_t<std::remove_reference_t<Value>>, Value>;
-        requires std::is_trivially_copyable_v<Value>;
-    };
-
-    template <typename Value>
     concept stack_value = requires
     {
         requires std::same_as<std::remove_cvref_t<Value>, Value>;
         requires std::is_trivially_copyable_v<Value>;
     };
 
-    template <typename Source, typename Target>
-    concept fits_into = sizeof(Source) <= sizeof(Target);
+    template <typename Value>
+    concept stack_element = requires
+    {
+        requires std::same_as<std::remove_volatile_t<std::remove_reference_t<Value>>, Value>;
+        requires std::is_trivially_copyable_v<Value>;
+    };
 
-    template <typename Source, typename Target>
-    concept compatible_stack_value = requires(Source value)
+    template <typename Type1, typename Type2>
+    concept equally_sized = sizeof(Type1) == sizeof(Type2);
+
+    template <typename Type1, typename Type2>
+    concept equally_sized_stack_values = requires
+    {
+        requires stack_value<Type1>;
+        requires stack_value<Type2>;
+        requires equally_sized<Type1, Type2>;
+    };
+
+    template <typename Type1, typename Type2>
+    concept equally_sized_stack_elements = requires
+    {
+        requires stack_element<Type1>;
+        requires stack_element<Type2>;
+        requires equally_sized<Type1, Type2>;
+    };
+
+    export template <typename T>
+    struct stack_conversion_traits
+    {
+        using source_type = T;
+        using target_type = T;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return val;
+        }
+    };
+
+    template <>
+    struct stack_conversion_traits<char_t>
+    {
+        using source_type = char_t;
+        using target_type = uint_t;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return val;
+        }
+    };
+
+    template <>
+    struct stack_conversion_traits<char>
+    {
+        using source_type = char;
+        using target_type = uint_t;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return static_cast<unsigned char>(val);
+        }
+    };
+
+    template <>
+    struct stack_conversion_traits<int>
+    {
+        using source_type = int;
+        using target_type = int_t;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return val;
+        }
+    };
+
+    template <>
+    struct stack_conversion_traits<unsigned int>
+    {
+        using source_type = unsigned int;
+        using target_type = uint_t;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return val;
+        }
+    };
+
+    template <>
+    struct stack_conversion_traits<bool>
+    {
+        using source_type = bool;
+        using target_type = flag_t;
+
+        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
+        {
+            return val ? yes : no;
+        }
+    };
+
+    template <typename Source, typename... Targets>
+    concept stack_compatible_value = requires
     {
         requires stack_value<Source>;
-        requires stack_value<Target>;
-        requires std::constructible_from<Target, Source>;
-        requires fits_into<Source, Target>;
+        requires (stack_value<Targets> && ...);
+        requires (std::same_as<typename stack_conversion_traits<Source>::target_type, Targets> || ...);
     };
 
     export template <stack_element Element, std::size_t extent = std::dynamic_extent>
@@ -214,7 +302,7 @@ namespace plapper
             return { this->element_addr };
         }
 
-        template <typename Target>
+        template <equally_sized_stack_elements<Element> Target>
         [[nodiscard]] stack_pointer<Target> as() const noexcept
         {
             return { reinterpret_cast<Target*>(this->element_addr) };
@@ -254,19 +342,18 @@ namespace plapper
     template <typename Element>
     stack_pointer(Element* element_addr) -> stack_pointer<Element>;
 
-
-    export template <stack_value Value> class stack
+    export template <stack_value DefaultValue, equally_sized_stack_values<DefaultValue>... FurtherValues> class stack
     {
 
-        template <stack_value ThatValue> friend class stack;
+        template <stack_value ThatDefaultValue, equally_sized_stack_values<ThatDefaultValue>...> friend class stack;
 
     public:
 
         using size_type = std::size_t;
-        using value_type = Value;
-        using reference = Value&;
-        using const_reference = const Value&;
-        using const_iterator = const Value*;
+        using value_type = DefaultValue;
+        using reference = DefaultValue&;
+        using const_reference = const DefaultValue&;
+        using const_iterator = const DefaultValue*;
 
         stack() = default;
 
@@ -291,9 +378,9 @@ namespace plapper
             return *this;
         }
 
-        [[nodiscard]] static std::expected<stack<Value>, error_status> of_size(const std::size_t cell_capacity) noexcept
+        [[nodiscard]] static std::expected<stack, error_status> of_size(const std::size_t cell_capacity) noexcept
         {
-            stack<Value> stack{};
+            stack stack{};
 
             auto stat = stack.reserve(cell_capacity);
 
@@ -303,7 +390,7 @@ namespace plapper
             return stack;
         }
 
-        template <compatible_stack_value<Value> ... Values>
+        template <equally_sized_stack_values<DefaultValue> ... Values>
         [[nodiscard]] static std::expected<stack, error_status> containing(Values... values) noexcept
         {
             auto stack = of_size(sizeof...(Values));
@@ -318,7 +405,7 @@ namespace plapper
         {
             if (new_cell_capacity > this->capacity_)
             {
-                const auto new_data = static_cast<Value*>(
+                const auto new_data = static_cast<DefaultValue*>(
                     std::realloc(this->data_, new_cell_capacity * sizeof(value_type)));
 
                 if (!new_data)
@@ -355,7 +442,7 @@ namespace plapper
             return !((*this) == that);
         }
 
-        template <compatible_stack_value<value_type> ... Values>
+        template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values>
         void push_unchecked(Values... values) noexcept
         {
             this->push_impl(std::index_sequence_for<Values...>{}, values...);
@@ -363,7 +450,7 @@ namespace plapper
             this->size_ += sizeof...(Values);
         }
 
-        template <compatible_stack_value<value_type> ... Values>
+        template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values>
         [[nodiscard]] error_status push(Values... values) noexcept
         {
             if (this->size_ + sizeof...(Values) > this->capacity_)
@@ -428,7 +515,7 @@ namespace plapper
             }
         }
 
-        template <size_type count, compatible_stack_value<value_type>... Values>
+        template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
         error_status replace(value_type value, Values... values)
         {
             assert(count <= this->size());
@@ -543,7 +630,7 @@ namespace plapper
 
     private:
 
-        template <compatible_stack_value<value_type> ... Values, std::size_t... indices>
+        template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values, std::size_t... indices>
         void push_impl(std::index_sequence<indices...>, Values... values) noexcept
         {
             ((this->data_[this->size_ + indices] = values), ...);
@@ -558,7 +645,7 @@ namespace plapper
             swap(this->size_, that.size_);
         }
 
-        Value* data_ = nullptr;
+        DefaultValue* data_ = nullptr;
         std::size_t capacity_ = 0;
         std::size_t size_ = 0;
 
