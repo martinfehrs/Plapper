@@ -69,15 +69,18 @@ namespace plapper
 
     export error_status plus_store(environment& env, void*) noexcept
     {
-        const auto range = env.dstack.top_n(2_cuz);
-
-        if (!range)
-            return error_status::stack_underflow;
-
-        *reinterpret_cast<int_t*>(range[1]) += range[0];
-        env.dstack.pop_n_unchecked(2);
-
-        return error_status::success;
+        return env.dstack.top().as<int_t*>().apply(
+            [&env](const auto a_addr)
+            {
+                return env.dstack.access(1).apply(
+                    [&env, a_addr](const auto n)
+                    {
+                        *a_addr + n;
+                        env.dstack.pop_n_unchecked(2);
+                    }
+                );
+            }
+        );
     }
 
     export error_status comma(environment& env, void*) noexcept
