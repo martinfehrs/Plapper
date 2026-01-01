@@ -45,22 +45,33 @@ namespace plapper
             }
         }
 
-        void write(const std::string_view text)
+        void write(std::string_view text)
+        {
+            write_impl(text);
+        }
+
+        void write(std::u8string_view text)
+        {
+            write_impl(text);
+        }
+
+    private:
+
+        template <typename Char>
+        void write_impl(const std::basic_string_view<Char> text)
         {
             const auto last_newline_pos = text.rfind('\n');
 
             if (last_newline_pos == std::string::npos)
             {
-                this->data += text;
+                std::ranges::copy(text, std::back_inserter(this->data));
                 return;
             }
 
-            data += text.substr(0, last_newline_pos);
+            std::ranges::copy(text.substr(0, last_newline_pos), std::back_inserter(this->data));
             this->flush();
-            data += text.substr(last_newline_pos + 1);
+            std::ranges::copy(text.substr(last_newline_pos + 1), std::back_inserter(this->data));
         }
-
-    private:
 
         std::string data;
 

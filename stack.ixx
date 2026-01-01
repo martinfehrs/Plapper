@@ -87,6 +87,10 @@ namespace plapper
         }
     };
 
+    template <typename T>
+    struct stack_conversion_traits<const T> : stack_conversion_traits<T>
+    { };
+
     template <>
     struct stack_conversion_traits<char_t>
     {
@@ -266,11 +270,11 @@ namespace plapper
 
     };
 
-    template <stack_element Element>
+    template <stack_element Element, stack_value... StackValues>
     class stack_pointer
     {
 
-        template <stack_element> friend class stack_pointer;
+        template <stack_element, stack_value...> friend class stack_pointer;
 
     public:
 
@@ -302,7 +306,7 @@ namespace plapper
             return { this->element_addr };
         }
 
-        template <equally_sized_stack_elements<Element> Target>
+        template <typename Target> requires(std::same_as<Target, StackValues> || ...)
         [[nodiscard]] stack_pointer<Target> as() const noexcept
         {
             return { reinterpret_cast<Target*>(this->element_addr) };
@@ -567,7 +571,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto top(this auto& self) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>>
+            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
         {
             if (self.empty())
                 return {};
@@ -576,7 +580,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto access(this auto& self, size_type pos) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>>
+            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
         {
             if (pos >= self.size_)
                 return {};

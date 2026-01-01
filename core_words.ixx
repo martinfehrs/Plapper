@@ -687,7 +687,7 @@ namespace plapper
         return env.dstack.top().as<uint_t>().apply(
             [&env](const auto u)
             {
-                return env.dstack.access(1).as<const char*>().apply(
+                return env.dstack.access(1).as<const char_t*>().apply(
                     [&env, u](auto c_addr)
                     {
                         env.tob.write({ c_addr, u });
