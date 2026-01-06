@@ -159,6 +159,49 @@ namespace plapper
         requires (std::same_as<typename stack_conversion_traits<Source>::target_type, Targets> || ...);
     };
 
+    template <typename... Ts>
+    struct type_sequence
+    { };
+
+    template<typename Type, std::size_t counter, std::size_t count, typename... ExpandedTypes>
+    struct make_type_sequence_helper
+    {
+        using type = make_type_sequence_helper<Type, counter + 1, count, Type, ExpandedTypes...>::type;
+    };
+
+    template<typename Type, std::size_t count, typename... ExpandedTypes>
+    struct make_type_sequence_helper<Type, count, count, ExpandedTypes...>
+    {
+        using type = type_sequence<ExpandedTypes...>;
+    };
+
+    template <typename Type, std::size_t count>
+    using make_type_sequence = make_type_sequence_helper<Type, 0, count>::type;
+
+    template <typename Func, typename Arg, std::size_t count>
+    struct invoke_result_n
+    {
+
+    private:
+
+        template <typename Func_, typename TypeSequence>
+        struct impl;
+
+        template <typename Func_, template<typename...> typename TypeSequence, typename...Args>
+        struct impl<Func_, TypeSequence<Args...>>
+        {
+            using type = std::invoke_result_t<Func_, Args...>;
+        };
+
+    public:
+
+        using type = impl<Func, make_type_sequence<Arg, count>>::type;
+
+    };
+
+    template <typename Func, typename Arg, std::size_t count>
+    using invoke_result_n_t = invoke_result_n<Func, Arg, count>::type;
+
     export template <stack_element Element, std::size_t extent = std::dynamic_extent>
     class stack_range : size_storage<extent>
     {
@@ -262,6 +305,40 @@ namespace plapper
         [[nodiscard]] const_reverse_iterator crend() const noexcept
         {
             return this->rend();
+        }
+
+        template<typename Func> requires(
+            extent != std::dynamic_extent && std::same_as<invoke_result_n_t<Func, Element&, extent>, void>
+        )
+        [[nodiscard]] error_status apply(Func func) const noexcept
+        {
+            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            {
+                func_((this->data_[indices])...);
+            };
+
+            if (!this->data_)
+                return error_status::stack_underflow;
+
+            impl(func, std::make_index_sequence<extent>{});
+
+            return error_status::success;
+        }
+
+        template<typename Func> requires(
+            extent != std::dynamic_extent && std::same_as<invoke_result_n_t<Func, Element&, extent>, error_status>
+        )
+        [[nodiscard]] error_status apply(Func func) const noexcept
+        {
+            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            {
+                return func_(this->data_[indices]...);
+            };
+
+            if (!this->data_)
+                return error_status::stack_underflow;
+
+            return impl(func, std::make_index_sequence<extent>{});
         }
 
     private:

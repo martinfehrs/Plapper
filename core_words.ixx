@@ -35,36 +35,26 @@ namespace plapper
 
     export error_status times_divide(environment& env, void*) noexcept
     {
-        auto const n_range = env.dstack.top_n(3_cuz);
-
-        if (!n_range)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<3>(
-            static_cast<int_t>(
-                static_cast<dint_t>(n_range[0]) * static_cast<dint_t>(n_range[1]) / static_cast<dint_t>(n_range[2])
-            )
+        return env.dstack.top_n(3_cuz).apply(
+            [&env](const dint_t n1, const dint_t n2, const dint_t n3)
+            {
+                return env.dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
+            }
         );
     }
 
     export error_status times(environment& env, void*) noexcept
     {
-        auto const n_range = env.dstack.top_n(2_cuz);
-
-        if (!n_range)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(n_range[0] * n_range[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 * n2); }
+        );
     }
 
     export error_status plus(environment& env, void*) noexcept
     {
-        const auto n_range = env.dstack.top_n(2_cuz);
-
-        if (!n_range)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(n_range[0] + n_range[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 + n2); }
+        );
     }
 
     export error_status plus_store(environment& env, void*) noexcept
@@ -100,12 +90,9 @@ namespace plapper
 
     export error_status minus(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] - srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 - n2); }
+        );
     }
 
     export error_status dot(environment& env, void*) noexcept
@@ -121,30 +108,28 @@ namespace plapper
 
     export error_status divide(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        if (srange[1] == 0)
-            return error_status::division_by_zero;
-
-        return env.dstack.replace<2>(srange[0] / srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return n2 == 0 ? error_status::division_by_zero
+                               : env.dstack.replace<2>(n1 / n2);
+            }
+        );
     }
 
     export error_status divide_mod(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                if (n2 == 0)
+                    return error_status::division_by_zero;
 
-        if (!srange)
-            return error_status::stack_underflow;
+                const auto[quot, reminder] = std::div(n1, n2);
 
-        if (srange[1] == 0)
-            return error_status::division_by_zero;
-
-        const auto[quot, reminder] = std::div(srange[0], srange[1]);
-
-        return env.dstack.replace<2>(reminder, quot);
+                return env.dstack.replace<2>(reminder, quot);
+            }
+        );
     }
 
     export error_status zero_less(environment& env, void*) noexcept
@@ -172,16 +157,15 @@ namespace plapper
         return env.dstack.top().as<int_t*>().apply(
             [&env](const auto a_addr)
             {
-                const auto x_range = env.dstack.access_n(1, 2_cuz);
+                return env.dstack.access_n(1, 2_cuz).apply(
+                    [&env, a_addr](const auto x1, const auto x2)
+                    {
+                        a_addr[0] == x2;
+                        a_addr[1] == x1;
 
-                if (!x_range)
-                    return error_status::stack_underflow;
-
-                rng::copy(x_range, a_addr);
-
-                env.dstack.pop_n_unchecked(3);
-
-                return error_status::success;
+                        env.dstack.pop_n_unchecked(3);
+                    }
+                );
             }
         );
     }
@@ -213,32 +197,29 @@ namespace plapper
 
     export error_status two_dupe(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.push(srange[0], srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto x2){ return env.dstack.push(x1, x2); }
+        );
     }
 
     export error_status two_over(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(4_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.push(srange[0], srange[1]);
+        return env.dstack.top_n(4_cuz).apply(
+            [&env](const auto x1, const auto x2, const auto...)
+            {
+                return env.dstack.push(x1, x2);
+            }
+        );
     }
 
     export error_status two_swap(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(4_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<4>(srange[2], srange[3], srange[0], srange[1]);
+        return env.dstack.top_n(4_cuz).apply(
+            [&env](const auto x1, const auto x2, const auto x3, const auto x4)
+            {
+                return env.dstack.replace<4>(x3, x4, x1, x2);
+            }
+        );
     }
 
     error_status colon_rt(environment& env, void* data) noexcept
@@ -296,32 +277,32 @@ namespace plapper
 
     export error_status less_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] < srange[1] ? yes : no);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return env.dstack.replace<2>(n1 < n2 ? yes : no);
+            }
+        );
     }
 
     export error_status equals(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] == srange[1] ? yes : no);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto x2)
+            {
+                return env.dstack.replace<2>(x1 == x2 ? yes : no);
+            }
+        );
     }
 
     export error_status greater_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] > srange[1] ? yes : no);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return env.dstack.replace<2>(n1 > n2 ? yes : no);
+            }
+        );
     }
 
     export error_status question_dupe(environment& env, void*) noexcept
@@ -334,10 +315,7 @@ namespace plapper
     export error_status fetch(environment& env, void*) noexcept
     {
         return env.dstack.top().as<int_t*>().apply(
-            [&env](auto a_addr)
-            {
-                return env.dstack.replace<1>(*a_addr);
-            }
+            [&env](const auto a_addr){ return env.dstack.replace<1>(*a_addr); }
         );
     }
 
@@ -380,12 +358,9 @@ namespace plapper
 
     export error_status and_(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] & srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 & x2); }
+        );
     }
 
     export error_status base(environment& env, void* data) noexcept
@@ -436,7 +411,7 @@ namespace plapper
     export error_status constant_(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](auto x)
+            [&env](const auto x)
             {
                 const auto word = env.tib.read_word();
 
@@ -462,7 +437,7 @@ namespace plapper
     export error_status count(environment& env, void*) noexcept
     {
         return env.dstack.top().as<const char_t*>().apply(
-            [&env](auto c_addr)
+            [&env](const auto c_addr)
             {
                 return env.dstack.replace<1>(reinterpret_cast<int_t>(c_addr + 1), c_addr[0]);
             }
@@ -511,18 +486,13 @@ namespace plapper
 
     export error_status dupe(environment& env, void*) noexcept
     {
-        return env.dstack.top().apply(
-            [&env](auto x)
-            {
-                return env.dstack.push(x);
-            }
-        );
+        return env.dstack.top().apply([&env](const auto x){ return env.dstack.push(x); });
     }
 
     export error_status emit(environment& env, void*) noexcept
     {
         return env.dstack.top().apply(
-            [&env](auto x)
+            [&env](const auto x)
             {
                 if (x < 0 || x > 127)
                     return error_status::out_of_character_range;
@@ -555,47 +525,45 @@ namespace plapper
         );
     }
 
+    // KORREKTUR: Ergebnis muss eine Vorzeichenbehaftete Ganzzahl doppelter Genauigkeit sein (dint_t)
     export error_status m_star(environment& env, void*) noexcept
     {
-        const auto n_range = env.dstack.top_n(2_cuz);
-
-        if (!n_range)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(static_cast<dint_t>(n_range[0]) * static_cast<dint_t>(n_range[1]));
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const dint_t n1, const dint_t n2)
+            {
+                return env.dstack.replace<2>(static_cast<int_t>(n1 * n2));
+            }
+        );
     }
 
     export error_status max(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(std::max(srange[0], srange[1]));
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return env.dstack.replace<2>(std::max(n1, n2));
+            }
+        );
     }
 
     export error_status min(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(std::min(srange[0], srange[1]));
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return env.dstack.replace<2>(std::min(n1, n2));
+            }
+        );
     }
 
     export error_status mod(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        if (srange[1] == 0)
-            return error_status::division_by_zero;
-
-        return env.dstack.replace<2>(srange[0] % srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto n1, const auto n2)
+            {
+                return env.dstack.replace<2>(n1 % n2);
+            }
+        );
     }
 
     export error_status negate(environment& env, void*) noexcept
@@ -605,22 +573,16 @@ namespace plapper
 
     export error_status or_(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(srange[0] | srange[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 | x2); }
+        );
     }
 
     export error_status over(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.push(srange[0]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto){ return env.dstack.push(x1); }
+        );
     }
 
     export error_status rote(environment& env, void*) noexcept
@@ -650,6 +612,7 @@ namespace plapper
         return env.dstack.push(0);
     }
 
+    // Verbesserung: Fehlerrückgabewert für write-Methode
     export error_status space(environment& env, void*) noexcept
     {
         env.tob.write(' ');
@@ -675,14 +638,7 @@ namespace plapper
 
     export error_status swap(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        std::swap(srange[0], srange[1]);
-
-        return error_status::success;
+        return env.dstack.top_n(2_cuz).apply([](auto& x1, auto& x2){ std::swap(x1, x2); });
     }
 
     export error_status type(environment& env, void*) noexcept
@@ -711,14 +667,15 @@ namespace plapper
         );
     }
 
+    // Verbesserung: Reinterpretierung der Stapelwerte als Vorzeichenlose Ganzzahlen mittels as-Methode
     export error_status u_less_than(environment& env, void*) noexcept
     {
-        const auto srange = env.dstack.top_n(2_cuz);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(static_cast<uint_t>(srange[0]) < static_cast<uint_t>(srange[1]));
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto u1, const auto u2)
+            {
+                return env.dstack.replace<2>(static_cast<uint_t>(u1) < static_cast<uint_t>(u2));
+            }
+        );
     }
 
     error_status variable_(environment& env, void* data) noexcept
@@ -761,12 +718,12 @@ namespace plapper
 
     export error_status xor_(environment& env, void*) noexcept
     {
-        const auto x_range = env.dstack.top_n(2_cuz);
-
-        if (!x_range)
-            return error_status::stack_underflow;
-
-        return env.dstack.replace<2>(x_range[0] ^ x_range[1]);
+        return env.dstack.top_n(2_cuz).apply(
+            [&env](const auto x1, const auto x2)
+            {
+                return env.dstack.replace<2>(x1 ^ x2);
+            }
+        );
     }
 
     export class core_words_t
