@@ -203,10 +203,10 @@ namespace plapper
     using invoke_result_n_t = invoke_result_n<Func, Arg, count>::type;
 
     export template <stack_element Element, std::size_t extent, stack_value... StackValues>
-    class stack_range : size_storage<extent>
+    class stack_selection : size_storage<extent>
     {
 
-        template <stack_element, std::size_t, stack_value...> friend class stack_range;
+        template <stack_element, std::size_t, stack_value...> friend class stack_selection;
 
     public:
 
@@ -223,27 +223,27 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::const_iterator<reverse_iterator>;
 
-        constexpr stack_range() noexcept
+        constexpr stack_selection() noexcept
             : size_storage<extent>()
             , data_{}
         { }
 
-        constexpr stack_range(pointer first) noexcept requires(extent != std::dynamic_extent)
+        constexpr stack_selection(pointer first) noexcept requires(extent != std::dynamic_extent)
             : size_storage<extent>()
             , data_{ first }
         { }
 
-        constexpr stack_range(pointer first, size_type count) noexcept requires(extent == std::dynamic_extent)
+        constexpr stack_selection(pointer first, size_type count) noexcept requires(extent == std::dynamic_extent)
             : size_storage<extent>{ count }
             , data_{ first }
         { }
 
-        constexpr stack_range(pointer first, pointer last) noexcept requires(extent == std::dynamic_extent)
+        constexpr stack_selection(pointer first, pointer last) noexcept requires(extent == std::dynamic_extent)
             : size_storage<extent>{ static_cast<std::size_t>(last - first) }
             , data_{ first }
         { }
 
-        constexpr stack_range(const stack_range& other) noexcept = default;
+        constexpr stack_selection(const stack_selection& other) noexcept = default;
 
         [[nodiscard]] element_type& operator[](size_type pos) const noexcept
         {
@@ -308,7 +308,7 @@ namespace plapper
         }
 
         template <typename Target> requires(std::same_as<Target, StackValues> || ...)
-        [[nodiscard]] stack_range<Target, extent, StackValues...> as() const noexcept
+        [[nodiscard]] stack_selection<Target, extent, StackValues...> as() const noexcept
         {
             return { reinterpret_cast<Target*>(this->data_) };
         }
@@ -578,7 +578,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type start, size_type count) noexcept
-            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
+            ->  stack_selection<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
         {
             if (self.size_ < start + count)
                 return {};
@@ -590,7 +590,7 @@ namespace plapper
 
         template <size_type count> requires(count > 1)
         [[nodiscard]] auto select(this auto& self, size_type start, size_constant<count>) noexcept
-            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
+            ->  stack_selection<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
         {
             if (self.size_ < start + count)
                 return {};
@@ -601,7 +601,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type start, size_constant<1>) noexcept
-            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
+            -> stack_selection<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
         {
             if (start >= self.size_)
                 return {};
@@ -610,7 +610,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type count) noexcept
-            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
+            -> stack_selection<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
         {
             if (self.size_ < count)
                 return {};
@@ -622,7 +622,7 @@ namespace plapper
 
         template <size_type count> requires(count > 1)
         [[nodiscard]] auto select(this auto& self, size_constant<count>) noexcept
-            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
+            -> stack_selection<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
         {
             if (self.size_ < count)
                 return {};
@@ -631,7 +631,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_constant<1>) noexcept
-            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
+            -> stack_selection<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
         {
             if (self.empty())
                 return {};
