@@ -254,7 +254,7 @@ namespace plapper
     {
         if (const auto ptr = env.rstack.select(1_cuz))
         {
-            env.instruction_ptr = *ptr;
+            env.instruction_ptr = ptr[0];
             env.rstack.pop_unchecked();
         }
         else

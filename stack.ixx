@@ -353,82 +353,6 @@ namespace plapper
 
     };
 
-    template <stack_element Element, stack_value... StackValues>
-    class stack_pointer
-    {
-
-        template <stack_element, stack_value...> friend class stack_pointer;
-
-    public:
-
-        using element_type = Element;
-        using pointer = Element*;
-
-        stack_pointer() noexcept
-            : element_addr{}
-        { }
-
-        stack_pointer(Element* element_addr) noexcept
-            : element_addr{ element_addr }
-        { }
-
-        [[nodiscard]] Element& operator*() const noexcept
-        {
-            assert(element_addr);
-
-            return *(this->element_addr);
-        }
-
-        [[nodiscard]] explicit operator bool() const noexcept
-        {
-            return this->element_addr;
-        }
-
-        [[nodiscard]] stack_pointer<const Element> as_const() const noexcept
-        {
-            return { this->element_addr };
-        }
-
-        template <typename Target> requires(std::same_as<Target, StackValues> || ...)
-        [[nodiscard]] stack_pointer<Target> as() const noexcept
-        {
-            return { reinterpret_cast<Target*>(this->element_addr) };
-        }
-
-        [[nodiscard]] auto operator+(std::intptr_t offset) const noexcept
-        {
-            return stack_pointer{ this->element_addr + offset };
-        }
-
-        template<typename Func> requires std::is_invocable_r_v<void, Func, Element&>
-                                      || std::is_invocable_r_v<error_status, Func, Element&>
-        [[nodiscard]] error_status apply(Func func) const noexcept
-        {
-            if (!this->element_addr)
-                return error_status::stack_underflow;
-
-            if constexpr (std::same_as<std::invoke_result_t<Func, Element &>, void>)
-            {
-                func(*this->element_addr);
-                return error_status::success;
-            }
-            else
-            {
-                return func(*this->element_addr);
-            }
-        }
-
-    private:
-
-        pointer element_addr;
-
-    };
-
-    export template <stack_element Element> using const_stack_pointer = stack_pointer<const Element>;
-
-    template <typename Element>
-    stack_pointer(Element* element_addr) -> stack_pointer<Element>;
-
     export template <stack_value DefaultValue, equally_sized_stack_values<DefaultValue>... FurtherValues> class stack
     {
 
@@ -596,7 +520,7 @@ namespace plapper
                     this->pop_n_unchecked(count - 1);
                 }
 
-                *this->select(1_cuz) = value;
+                this->select(1_cuz)[0] = value;
 
                 return error_status::success;
             }
@@ -677,7 +601,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type start, size_constant<1>) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
+            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
         {
             if (start >= self.size_)
                 return {};
@@ -707,7 +631,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_constant<1>) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
+            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, 1, DefaultValue, FurtherValues...>
         {
             if (self.empty())
                 return {};
