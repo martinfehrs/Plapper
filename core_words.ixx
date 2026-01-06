@@ -670,10 +670,10 @@ namespace plapper
     // Verbesserung: Reinterpretierung der Stapelwerte als Vorzeichenlose Ganzzahlen mittels as-Methode
     export error_status u_less_than(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz).as<uint_t>().apply(
             [&env](const auto u1, const auto u2)
             {
-                return env.dstack.replace<2>(static_cast<uint_t>(u1) < static_cast<uint_t>(u2));
+                return env.dstack.replace<2>(u1 < u2);
             }
         );
     }

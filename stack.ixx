@@ -202,11 +202,11 @@ namespace plapper
     template <typename Func, typename Arg, std::size_t count>
     using invoke_result_n_t = invoke_result_n<Func, Arg, count>::type;
 
-    export template <stack_element Element, std::size_t extent = std::dynamic_extent>
+    export template <stack_element Element, std::size_t extent, stack_value... StackValues>
     class stack_range : size_storage<extent>
     {
 
-        template <stack_element, std::size_t> friend class stack_range;
+        template <stack_element, std::size_t, stack_value...> friend class stack_range;
 
     public:
 
@@ -305,6 +305,12 @@ namespace plapper
         [[nodiscard]] const_reverse_iterator crend() const noexcept
         {
             return this->rend();
+        }
+
+        template <typename Target> requires(std::same_as<Target, StackValues> || ...)
+        [[nodiscard]] stack_range<Target, extent, StackValues...> as() const noexcept
+        {
+            return { reinterpret_cast<Target*>(this->data_) };
         }
 
         template<typename Func> requires(
@@ -648,7 +654,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type start, size_type count) noexcept
-            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>>
+            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
         {
             if (self.size_ < start + count)
                 return {};
@@ -660,7 +666,7 @@ namespace plapper
 
         template <size_type count> requires(count > 1)
         [[nodiscard]] auto select(this auto& self, size_type start, size_constant<count>) noexcept
-            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
+            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
         {
             if (self.size_ < start + count)
                 return {};
@@ -680,7 +686,7 @@ namespace plapper
         }
 
         [[nodiscard]] auto select(this auto& self, size_type count) noexcept
-            ->  stack_range<std::remove_pointer_t<decltype(self.data_)>>
+            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, std::dynamic_extent, DefaultValue, FurtherValues...>
         {
             if (self.size_ < count)
                 return {};
@@ -692,7 +698,7 @@ namespace plapper
 
         template <size_type count> requires(count > 1)
         [[nodiscard]] auto select(this auto& self, size_constant<count>) noexcept
-            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
+            -> stack_range<std::remove_pointer_t<decltype(self.data_)>, count, DefaultValue, FurtherValues...>
         {
             if (self.size_ < count)
                 return {};
