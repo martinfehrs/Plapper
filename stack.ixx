@@ -590,7 +590,7 @@ namespace plapper
                     this->pop_n_unchecked(count - 1);
                 }
 
-                *this->top() = value;
+                *this->select(1_cuz) = value;
 
                 return error_status::success;
             }
@@ -647,25 +647,7 @@ namespace plapper
             this->size_ = 0;
         }
 
-        [[nodiscard]] auto top(this auto& self) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
-        {
-            if (self.empty())
-                return {};
-
-            return { self.data_ + self.size_ - 1 };
-        }
-
-        [[nodiscard]] auto access(this auto& self, size_type pos) noexcept
-            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
-        {
-            if (pos >= self.size_)
-                return {};
-
-            return { &self.data_[self.size_ - 1 - pos] };
-        }
-
-        [[nodiscard]] auto access_n(this auto& self, size_type start, size_type count) noexcept
+        [[nodiscard]] auto select(this auto& self, size_type start, size_type count) noexcept
             ->  stack_range<std::remove_pointer_t<decltype(self.data_)>>
         {
             if (self.size_ < start + count)
@@ -676,8 +658,8 @@ namespace plapper
             return { last - count, last };
         }
 
-        template <size_type count>
-        [[nodiscard]] auto access_n(this auto& self, size_type start, size_constant<count>) noexcept
+        template <size_type count> requires(count > 1)
+        [[nodiscard]] auto select(this auto& self, size_type start, size_constant<count>) noexcept
             ->  stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
         {
             if (self.size_ < start + count)
@@ -688,7 +670,16 @@ namespace plapper
             return { last - count };
         }
 
-        [[nodiscard]] auto top_n(this auto& self, size_type count) noexcept
+        [[nodiscard]] auto select(this auto& self, size_type start, size_constant<1>) noexcept
+            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
+        {
+            if (start >= self.size_)
+                return {};
+
+            return { &self.data_[self.size_ - 1 - start] };
+        }
+
+        [[nodiscard]] auto select(this auto& self, size_type count) noexcept
             ->  stack_range<std::remove_pointer_t<decltype(self.data_)>>
         {
             if (self.size_ < count)
@@ -699,14 +690,23 @@ namespace plapper
             return { last - count, last };
         }
 
-        template <size_type count>
-        [[nodiscard]] auto top_n(this auto& self, size_constant<count>) noexcept
+        template <size_type count> requires(count > 1)
+        [[nodiscard]] auto select(this auto& self, size_constant<count>) noexcept
             -> stack_range<std::remove_pointer_t<decltype(self.data_)>, count>
         {
             if (self.size_ < count)
                 return {};
 
             return { self.data_ + self.size_ - count };
+        }
+
+        [[nodiscard]] auto select(this auto& self, size_constant<1>) noexcept
+            -> stack_pointer<std::remove_pointer_t<decltype(self.data_)>, DefaultValue, FurtherValues...>
+        {
+            if (self.empty())
+                return {};
+
+            return { self.data_ + self.size_ - 1 };
         }
 
     private:
