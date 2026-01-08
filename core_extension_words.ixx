@@ -17,7 +17,7 @@ namespace plapper
 
     export error_status zero_greater(environment& env, void*) noexcept
     {
-        return env.dstack.select(value).apply([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
+        return env.dstack.select(value).and_then([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
     }
 
     export error_status hex(environment& env, void*) noexcept
@@ -29,7 +29,7 @@ namespace plapper
 
     export error_status roll(environment& env, void*) noexcept
     {
-        return env.dstack.select(value).apply(
+        return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
                 return env.dstack.select_at(1, subrange(n + 1)).apply(

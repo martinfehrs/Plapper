@@ -231,7 +231,7 @@ namespace plapper
         }
 
         template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, void>)
-        [[nodiscard]] error_status apply(Func func) const noexcept
+        [[nodiscard]] error_status and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
@@ -247,7 +247,7 @@ namespace plapper
         }
 
         template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, error_status>)
-        [[nodiscard]] error_status apply(Func func) const noexcept
+        [[nodiscard]] error_status and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
