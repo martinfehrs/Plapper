@@ -97,7 +97,7 @@ namespace plapper
 
                     if (auto const entry = this->dict.find(word); entry != nullptr)
                     {
-                        if (this->state == yes)
+                        if (this->state == yes && !entry->immediate)
                         {
                             if (!this->dict.append(&entry->xt))
                             {
