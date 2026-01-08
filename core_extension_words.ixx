@@ -17,7 +17,7 @@ namespace plapper
 
     export error_status zero_greater(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
+        return env.dstack.select(value).apply([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
     }
 
     export error_status hex(environment& env, void*) noexcept
@@ -29,18 +29,16 @@ namespace plapper
 
     export error_status roll(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto n)
             {
-                auto values = env.dstack.select(1, n + 1);
-
-                if (!values)
-                    return error_status::stack_underflow;
-
-                rng::rotate(values, rng::next(rng::begin(values)));
-                env.dstack.pop_unchecked();
-
-                return error_status::success;
+                return env.dstack.select_at(1, subrange(n + 1)).apply(
+                    [&env](const auto xs)
+                    {
+                        rng::rotate(xs, rng::next(rng::begin(xs)));
+                        env.dstack.pop_unchecked();
+                    }
+                );
             }
         );
     }

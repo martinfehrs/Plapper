@@ -18,10 +18,10 @@ namespace plapper
 
     export error_status store(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<int_t*>().apply(
+        return env.dstack.select(value_of<int_t*>).apply(
             [&env](const auto a_addr)
             {
-                return env.dstack.select(1, 1_cuz).apply(
+                return env.dstack.select_at(1, value).apply(
                     [&env, a_addr](const auto x)
                     {
                         *a_addr = x;
@@ -35,7 +35,7 @@ namespace plapper
 
     export error_status times_divide(environment& env, void*) noexcept
     {
-        return env.dstack.select(3_cuz).apply(
+        return env.dstack.select(3_cuz * value).apply(
             [&env](const dint_t n1, const dint_t n2, const dint_t n3)
             {
                 return env.dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
@@ -45,24 +45,24 @@ namespace plapper
 
     export error_status times(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 * n2); }
         );
     }
 
     export error_status plus(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 + n2); }
         );
     }
 
     export error_status plus_store(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<int_t*>().apply(
+        return env.dstack.select(value_of<int_t*>).apply(
             [&env](const auto a_addr)
             {
-                return env.dstack.select(1, 1_cuz).apply(
+                return env.dstack.select_at(1, value).apply(
                     [&env, a_addr](const auto n)
                     {
                         *a_addr + n;
@@ -75,7 +75,7 @@ namespace plapper
 
     export error_status comma(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto x)
             {
                 if (!env.dict.append(x))
@@ -90,14 +90,14 @@ namespace plapper
 
     export error_status minus(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 - n2); }
         );
     }
 
     export error_status dot(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto n)
             {
                 env.tob.write(std::format("{}", n));
@@ -108,7 +108,7 @@ namespace plapper
 
     export error_status divide(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return n2 == 0 ? error_status::division_by_zero
@@ -119,7 +119,7 @@ namespace plapper
 
     export error_status divide_mod(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 if (n2 == 0)
@@ -134,30 +134,30 @@ namespace plapper
 
     export error_status zero_less(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& x){ x = x < 0 ? yes : no; });
+        return env.dstack.select(value).apply([](auto& x){ x = x < 0 ? yes : no; });
     }
 
     export error_status zero_equals(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& x){ x = x == 0 ? yes : no; });
+        return env.dstack.select(value).apply([](auto& x){ x = x == 0 ? yes : no; });
     }
 
     export error_status one_plus(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n += 1; });
+        return env.dstack.select(value).apply([](auto& n){ n += 1; });
     }
 
     export error_status one_minus(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n -= 1; });
+        return env.dstack.select(value).apply([](auto& n){ n -= 1; });
     }
 
     export error_status two_store(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<int_t*>().apply(
+        return env.dstack.select(value_of<int_t*>).apply(
             [&env](const auto a_addr)
             {
-                return env.dstack.select(1, 2_cuz).apply(
+                return env.dstack.select_at(1, 2_cuz * value).apply(
                     [&env, a_addr](const auto x1, const auto x2)
                     {
                         a_addr[0] == x2;
@@ -172,17 +172,17 @@ namespace plapper
 
     export error_status two_star(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& x){ x <<= 1; });
+        return env.dstack.select(value).apply([](auto& x){ x <<= 1; });
     }
 
     export error_status two_slash(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& x){ x >>= 1; });
+        return env.dstack.select(value).apply([](auto& x){ x >>= 1; });
     }
 
     export error_status two_fetch(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<int_t*>().apply(
+        return env.dstack.select(value_of<int_t*>).apply(
             [&env](const auto a_addr)
             {
                 return env.dstack.replace<1>(a_addr[0], a_addr[1]);
@@ -197,14 +197,14 @@ namespace plapper
 
     export error_status two_dupe(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto x2){ return env.dstack.push(x1, x2); }
         );
     }
 
     export error_status two_over(environment& env, void*) noexcept
     {
-        return env.dstack.select(4_cuz).apply(
+        return env.dstack.select(4_cuz * value).apply(
             [&env](const auto x1, const auto x2, const auto...)
             {
                 return env.dstack.push(x1, x2);
@@ -214,7 +214,7 @@ namespace plapper
 
     export error_status two_swap(environment& env, void*) noexcept
     {
-        return env.dstack.select(4_cuz).apply(
+        return env.dstack.select(4_cuz * value).apply(
             [&env](const auto x1, const auto x2, const auto x3, const auto x4)
             {
                 return env.dstack.replace<4>(x3, x4, x1, x2);
@@ -252,7 +252,7 @@ namespace plapper
 
     error_status semicolon_rt(environment& env, void*) noexcept
     {
-        if (const auto ptr = env.rstack.select(1_cuz))
+        if (const auto ptr = env.rstack.select(value))
         {
             env.instruction_ptr = ptr[0];
             env.rstack.pop_unchecked();
@@ -277,7 +277,7 @@ namespace plapper
 
     export error_status less_than(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return env.dstack.replace<2>(n1 < n2 ? yes : no);
@@ -287,7 +287,7 @@ namespace plapper
 
     export error_status equals(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto x2)
             {
                 return env.dstack.replace<2>(x1 == x2 ? yes : no);
@@ -297,7 +297,7 @@ namespace plapper
 
     export error_status greater_than(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return env.dstack.replace<2>(n1 > n2 ? yes : no);
@@ -307,26 +307,26 @@ namespace plapper
 
     export error_status question_dupe(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto x){ return x ? env.dstack.push(x) : error_status::success; }
         );
     }
 
     export error_status fetch(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<int_t*>().apply(
+        return env.dstack.select(value_of<int_t*>).apply(
             [&env](const auto a_addr){ return env.dstack.replace<1>(*a_addr); }
         );
     }
 
     export error_status abs(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n = std::abs(n); });
+        return env.dstack.select(value).apply([](auto& n){ n = std::abs(n); });
     }
 
     export error_status aligned(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [](auto& a_addr)
             {
                 auto offset = a_addr % cell_size;
@@ -343,7 +343,7 @@ namespace plapper
 
     export error_status allot(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto n)
             {
                 if (const auto* mem = env.dict.allot<byte_t>(n); !mem)
@@ -358,7 +358,7 @@ namespace plapper
 
     export error_status and_(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 & x2); }
         );
     }
@@ -375,12 +375,12 @@ namespace plapper
 
     export error_status cell_plus(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& a_addr){ a_addr += cell_size; });
+        return env.dstack.select(value).apply([](auto& a_addr){ a_addr += cell_size; });
     }
 
     export error_status cells(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n *= cell_size; });
+        return env.dstack.select(value).apply([](auto& n){ n *= cell_size; });
     }
 
     export error_status char_(environment& env, void*) noexcept
@@ -395,12 +395,12 @@ namespace plapper
 
     export error_status char_plus(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& c_addr){ c_addr += char_size; });
+        return env.dstack.select(value).apply([](auto& c_addr){ c_addr += char_size; });
     }
 
     export error_status chars(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n *= char_size; });
+        return env.dstack.select(value).apply([](auto& n){ n *= char_size; });
     }
 
     error_status constant__(environment& env, void* data) noexcept
@@ -410,7 +410,7 @@ namespace plapper
 
     export error_status constant_(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto x)
             {
                 const auto word = env.tib.read_word();
@@ -436,7 +436,7 @@ namespace plapper
 
     export error_status count(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<const char_t*>().apply(
+        return env.dstack.select(value_of<const char_t*>).apply(
             [&env](const auto c_addr)
             {
                 return env.dstack.replace<1>(reinterpret_cast<int_t>(c_addr + 1), c_addr[0]);
@@ -486,12 +486,12 @@ namespace plapper
 
     export error_status dupe(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([&env](const auto x){ return env.dstack.push(x); });
+        return env.dstack.select(value).apply([&env](const auto x){ return env.dstack.push(x); });
     }
 
     export error_status emit(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto x)
             {
                 if (x < 0 || x > 127)
@@ -512,15 +512,15 @@ namespace plapper
 
     export error_status invert(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& x){ x = ~x; });
+        return env.dstack.select(value).apply([](auto& x){ x = ~x; });
     }
 
     export error_status l_shift(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](auto& x)
             {
-                return env.dstack.select(1, 1_cuz).apply([&x](const auto u){ x <<= u; });
+                return env.dstack.select_at(1, value).apply([&x](const auto u){ x <<= u; });
             }
         );
     }
@@ -528,7 +528,7 @@ namespace plapper
     // KORREKTUR: Ergebnis muss eine Vorzeichenbehaftete Ganzzahl doppelter Genauigkeit sein (dint_t)
     export error_status m_star(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const dint_t n1, const dint_t n2)
             {
                 return env.dstack.replace<2>(static_cast<int_t>(n1 * n2));
@@ -538,7 +538,7 @@ namespace plapper
 
     export error_status max(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return env.dstack.replace<2>(std::max(n1, n2));
@@ -548,7 +548,7 @@ namespace plapper
 
     export error_status min(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return env.dstack.replace<2>(std::min(n1, n2));
@@ -558,7 +558,7 @@ namespace plapper
 
     export error_status mod(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto n1, const auto n2)
             {
                 return env.dstack.replace<2>(n1 % n2);
@@ -568,26 +568,26 @@ namespace plapper
 
     export error_status negate(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply([](auto& n){ n = -n; });
+        return env.dstack.select(value).apply([](auto& n){ n = -n; });
     }
 
     export error_status or_(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 | x2); }
         );
     }
 
     export error_status over(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto){ return env.dstack.push(x1); }
         );
     }
 
     export error_status rote(environment& env, void*) noexcept
     {
-        auto srange = env.dstack.select(3_cuz);
+        auto srange = env.dstack.select(3_cuz * value);
 
         if (!srange)
             return error_status::stack_underflow;
@@ -599,10 +599,10 @@ namespace plapper
 
     export error_status r_shift(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](auto& x)
             {
-                return env.dstack.select(1, 1_cuz).apply([&x](const auto u){ x >>= u; });
+                return env.dstack.select_at(1, value).apply([&x](const auto u){ x >>= u; });
             }
         );
     }
@@ -622,7 +622,7 @@ namespace plapper
 
     export error_status spaces(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).apply(
+        return env.dstack.select(value).apply(
             [&env](const auto n)
             {
                 env.tob.write(' ', n);
@@ -638,15 +638,15 @@ namespace plapper
 
     export error_status swap(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply([](auto& x1, auto& x2){ std::swap(x1, x2); });
+        return env.dstack.select(2_cuz * value).apply([](auto& x1, auto& x2){ std::swap(x1, x2); });
     }
 
     export error_status type(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<uint_t>().apply(
+        return env.dstack.select(value_of<uint_t>).apply(
             [&env](const auto u)
             {
-                return env.dstack.select(1, 1_cuz).as<const char_t*>().apply(
+                return env.dstack.select_at(1, value_of<const char_t*>).apply(
                     [&env, u](auto c_addr)
                     {
                         env.tob.write({ c_addr, u });
@@ -659,7 +659,7 @@ namespace plapper
 
     export error_status u_dot(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<uint_t>().apply(
+        return env.dstack.select(value_of<uint_t>).apply(
             [&env](auto u)
             {
                 env.tob.write(std::format("{}", u));
@@ -670,7 +670,7 @@ namespace plapper
     // Verbesserung: Reinterpretierung der Stapelwerte als Vorzeichenlose Ganzzahlen mittels as-Methode
     export error_status u_less_than(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).as<uint_t>().apply(
+        return env.dstack.select(2_cuz * value_of<uint_t>).apply(
             [&env](const auto u1, const auto u2)
             {
                 return env.dstack.replace<2>(u1 < u2);
@@ -701,7 +701,7 @@ namespace plapper
 
     export error_status word(environment& env, void*) noexcept
     {
-        return env.dstack.select(1_cuz).as<uint_t>().apply(
+        return env.dstack.select(value_of<uint_t>).apply(
             [&env](const char char_)
             {
                 const auto word = env.tib.read_until(char_);
@@ -718,7 +718,7 @@ namespace plapper
 
     export error_status xor_(environment& env, void*) noexcept
     {
-        return env.dstack.select(2_cuz).apply(
+        return env.dstack.select(2_cuz * value).apply(
             [&env](const auto x1, const auto x2)
             {
                 return env.dstack.replace<2>(x1 ^ x2);
