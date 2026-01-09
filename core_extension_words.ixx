@@ -32,13 +32,13 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                return env.dstack.select_at(1, subrange(n + 1)).apply(
+                return env.dstack.select_at(1, subrange(n + 1)).and_then(
                     [&env](const auto xs)
                     {
                         rng::rotate(xs, rng::next(rng::begin(xs)));
                         env.dstack.pop_unchecked();
                     }
-                );
+                ).error();
             }
         );
     }

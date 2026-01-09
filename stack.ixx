@@ -158,12 +158,14 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::const_iterator<reverse_iterator>;
 
-        constexpr value_selection() noexcept
-            : data_{}
+        explicit constexpr value_selection(error_status error) noexcept
+            : data_{ nullptr }
+            , error_{ error }
         { }
 
         constexpr value_selection(pointer first) noexcept
             : data_{ first }
+            , error_{ error_status::success }
         { }
 
         constexpr value_selection(const value_selection& other) noexcept = default;
@@ -185,9 +187,14 @@ namespace plapper
             return extent == 0;
         }
 
-        [[nodiscard]] explicit constexpr operator bool() const noexcept
+        [[nodiscard]] constexpr error_status error() const noexcept
         {
-            return this->data_ != nullptr;
+            return this->error_;
+        }
+
+        [[nodiscard]] constexpr operator error_status() const noexcept
+        {
+            return this->error_;
         }
 
         [[nodiscard]] auto begin(this auto& self) noexcept
@@ -231,38 +238,62 @@ namespace plapper
         }
 
         template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, void>)
-        [[nodiscard]] error_status and_then(Func func) const noexcept
+        [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 func_((this->data_[indices])...);
             };
 
-            if (!this->data_)
-                return error_status::stack_underflow;
+            if (this->error_ == error_status::success)
+                impl(func, std::make_index_sequence<extent>{});
 
-            impl(func, std::make_index_sequence<extent>{});
-
-            return error_status::success;
+            return *this;
         }
 
         template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, error_status>)
-        [[nodiscard]] error_status and_then(Func func) const noexcept
+        [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 return func_(this->data_[indices]...);
             };
 
-            if (!this->data_)
-                return error_status::stack_underflow;
+            if (this->error_ != error_status::success)
+                return *this;
 
-            return impl(func, std::make_index_sequence<extent>{});
+            const auto new_error_status = impl(func, std::make_index_sequence<extent>{});
+
+            if (new_error_status != error_status::success)
+                return value_selection{ new_error_status };
+
+            return *this;
+        }
+
+        template <typename Func> requires(std::same_as<std::invoke_result_t<Func>, void>)
+        [[nodiscard]] auto or_else(Func func) noexcept
+        {
+            if (this->error_ == error_status::success)
+                return *this;
+
+            func();
+
+            return *this;
+        }
+
+        template <typename Func> requires(std::same_as<std::invoke_result_t<Func>, error_status>)
+        [[nodiscard]] auto or_else(Func func) noexcept
+        {
+            if (this->error_ == error_status::success)
+                return *this;
+
+            return value_selection{ func() };
         }
 
     private:
 
         pointer data_;
+        error_status error_;
 
     };
 
@@ -287,19 +318,22 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::const_iterator<reverse_iterator>;
 
-        constexpr range_selection() noexcept
-            : size_{}
-            , data_{}
-        { }
-
         constexpr range_selection(pointer first, size_type count) noexcept
             : size_{ count }
             , data_{ first }
+            , error_{ error_status::success }
         { }
 
         constexpr range_selection(pointer first, pointer last) noexcept
             : size_{ static_cast<std::size_t>(last - first) }
             , data_{ first }
+            , error_{ error_status::success }
+        { }
+
+        constexpr range_selection(error_status error)
+            : size_{ 0 }
+            , data_{ nullptr }
+            , error_{ error }
         { }
 
         constexpr range_selection(const range_selection& other) noexcept = default;
@@ -321,9 +355,9 @@ namespace plapper
             return this->size_ == 0;
         }
 
-        [[nodiscard]] explicit constexpr operator bool() const noexcept
+        [[nodiscard]] constexpr error_status error() const noexcept
         {
-            return this->data_ != nullptr;
+            return this->error_;
         }
 
         [[nodiscard]] auto begin(this auto& self) noexcept
@@ -367,33 +401,37 @@ namespace plapper
         }
 
         template<typename Func>
-        [[nodiscard]] error_status apply(Func func) const noexcept requires(
+        [[nodiscard]] auto and_then(Func func) const noexcept requires(
             std::same_as<std::invoke_result_t<Func, decltype(*this)>, void>
         )
         {
-            if (!this->data_)
-                return error_status::stack_underflow;
+            if (this->error_ == error_status::success)
+                func(*this);
 
-            func(*this);
-
-            return error_status::success;
+            return *this;
         }
 
         template<typename Func>
-        [[nodiscard]] error_status apply(Func func) const noexcept requires(
+        [[nodiscard]] auto and_then(Func func) const noexcept requires(
             std::same_as<std::invoke_result_t<Func, decltype(*this)>, error_status>
         )
         {
-            if (!this->data_)
-                return error_status::stack_underflow;
+            if (this->error_ != error_status::success)
+                return *this;
 
-            return func(*this);
+            const auto new_error_status = func(*this);
+
+            if (new_error_status != error_status::success)
+                return value_selection{ new_error_status };
+
+            return *this;
         }
 
     private:
 
         size_type size_;
         pointer data_;
+        error_status error_;
 
     };
 
@@ -717,7 +755,7 @@ namespace plapper
             requires selection_filter<Filter, decltype(self.data_)>
         {
             if (self.size_ < filter.count())
-                return typename Filter::template result_type<decltype(self.data_)>{};
+                return typename Filter::template result_type<decltype(self.data_)>{ error_status::stack_underflow };
 
             return filter.select(self.data_ + self.size_);
         }
@@ -727,7 +765,7 @@ namespace plapper
             requires selection_filter<Filter, decltype(self.data_)>
         {
             if (self.size_ < start + filter.count())
-                return typename Filter::template result_type<decltype(self.data_)>{};
+                return typename Filter::template result_type<decltype(self.data_)>{ error_status::stack_underflow };
 
             return filter.select(self.data_ + self.size_ - start);
         }

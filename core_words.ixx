@@ -28,7 +28,7 @@ namespace plapper
 
                         env.dstack.pop_n_unchecked(2);
                     }
-                );
+                ).error();
             }
         );
     }
@@ -68,7 +68,7 @@ namespace plapper
                         *a_addr + n;
                         env.dstack.pop_n_unchecked(2);
                     }
-                );
+                ).error();
             }
         );
     }
@@ -165,7 +165,7 @@ namespace plapper
 
                         env.dstack.pop_n_unchecked(3);
                     }
-                );
+                ).error();
             }
         );
     }
@@ -252,15 +252,19 @@ namespace plapper
 
     error_status semicolon_rt(environment& env, void*) noexcept
     {
-        if (const auto ptr = env.rstack.select(value))
-        {
-            env.instruction_ptr = ptr[0];
-            env.rstack.pop_unchecked();
-        }
-        else
-            env.instruction_ptr = nullptr;
-
-        return error_status::success;
+        return env.rstack.select(value)
+            .and_then(
+                [&env](const auto ptr)
+                {
+                    env.instruction_ptr = ptr;
+                    env.rstack.pop_unchecked();
+                }
+            ).or_else(
+                [&env]
+                {
+                    env.instruction_ptr = nullptr;
+                }
+            );
     };
 
     export error_status semicolon(environment& env, void*) noexcept
@@ -520,7 +524,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](auto& x)
             {
-                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x <<= u; });
+                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x <<= u; }).error();
             }
         );
     }
@@ -587,14 +591,13 @@ namespace plapper
 
     export error_status rote(environment& env, void*) noexcept
     {
-        auto srange = env.dstack.select(3_cuz * value);
-
-        if (!srange)
-            return error_status::stack_underflow;
-
-        rng::rotate(srange, rng::next(rng::begin(srange)));
-
-        return error_status::success;
+        return env.dstack.select(3_cuz * value).and_then(
+            [](auto& x1, auto& x2, auto& x3)
+            {
+                std::swap(x1, x2);
+                std::swap(x2, x3);
+            }
+        );
     }
 
     export error_status r_shift(environment& env, void*) noexcept
@@ -602,7 +605,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](auto& x)
             {
-                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x >>= u; });
+                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x >>= u; }).error();
             }
         );
     }
@@ -654,7 +657,7 @@ namespace plapper
                         env.tob.write({ c_addr, u });
                         env.dstack.pop_n_unchecked(2);
                     }
-                );
+                ).error();
             }
         );
     }
