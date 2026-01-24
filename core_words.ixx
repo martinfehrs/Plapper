@@ -18,17 +18,11 @@ namespace plapper
 
     export error_status store(environment& env, void*) noexcept
     {
-        return env.dstack.select(value_of<int_t*>).and_then(
-            [&env](const auto a_addr)
+        return env.dstack.select(value_of<int_t*>, value).and_then(
+            [&env](const auto a_addr, const auto x)
             {
-                return env.dstack.select_at(1, value).and_then(
-                    [&env, a_addr](const auto x)
-                    {
-                        *a_addr = x;
-
-                        env.dstack.pop_n_unchecked(2);
-                    }
-                ).error();
+                *a_addr = x;
+                env.dstack.pop_n_unchecked(2);
             }
         );
     }
@@ -59,16 +53,11 @@ namespace plapper
 
     export error_status plus_store(environment& env, void*) noexcept
     {
-        return env.dstack.select(value_of<int_t*>).and_then(
-            [&env](const auto a_addr)
+        return env.dstack.select(value_of<int_t*>, value).and_then(
+            [&env](const auto a_addr, const auto n)
             {
-                return env.dstack.select_at(1, value).and_then(
-                    [&env, a_addr](const auto n)
-                    {
-                        *a_addr + n;
-                        env.dstack.pop_n_unchecked(2);
-                    }
-                ).error();
+                *a_addr + n;
+                env.dstack.pop_n_unchecked(2);
             }
         );
     }
@@ -154,18 +143,12 @@ namespace plapper
 
     export error_status two_store(environment& env, void*) noexcept
     {
-        return env.dstack.select(value_of<int_t*>).and_then(
-            [&env](const auto a_addr)
+        return env.dstack.select(value_of<int_t*>, 2_cuz * value).and_then(
+            [&env](const auto a_addr, const auto x1, const auto x2)
             {
-                return env.dstack.select_at(1, 2_cuz * value).and_then(
-                    [&env, a_addr](const auto x1, const auto x2)
-                    {
-                        a_addr[0] == x2;
-                        a_addr[1] == x1;
-
-                        env.dstack.pop_n_unchecked(3);
-                    }
-                ).error();
+                a_addr[0] == x2;
+                a_addr[1] == x1;
+                env.dstack.pop_n_unchecked(3);
             }
         );
     }
@@ -205,7 +188,7 @@ namespace plapper
     export error_status two_over(environment& env, void*) noexcept
     {
         return env.dstack.select(4_cuz * value).and_then(
-            [&env](const auto x1, const auto x2, const auto...)
+            [&env](const auto x1, const auto x2, const auto, const auto)
             {
                 return env.dstack.push(x1, x2);
             }
@@ -521,10 +504,11 @@ namespace plapper
 
     export error_status l_shift(environment& env, void*) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](auto& x)
+        return env.dstack.select(value, value_of<uint_t>).and_then(
+            [&env](auto& x, const auto u)
             {
-                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x <<= u; }).error();
+                x <<= u;
+                env.dstack.pop_unchecked();
             }
         );
     }
@@ -602,10 +586,11 @@ namespace plapper
 
     export error_status r_shift(environment& env, void*) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](auto& x)
+        return env.dstack.select(value, value_of<uint_t>).and_then(
+            [&env](auto& x, const auto u)
             {
-                return env.dstack.select_at(1, value).and_then([&x](const auto u){ x >>= u; }).error();
+                x >>= u;
+                env.dstack.pop_unchecked();
             }
         );
     }
@@ -648,16 +633,11 @@ namespace plapper
 
     export error_status type(environment& env, void*) noexcept
     {
-        return env.dstack.select(value_of<uint_t>).and_then(
-            [&env](const auto u)
+        return env.dstack.select(value_of<uint_t>, value_of<const char_t*>).and_then(
+            [&env](const auto u, const auto c_addr)
             {
-                return env.dstack.select_at(1, value_of<const char_t*>).and_then(
-                    [&env, u](auto c_addr)
-                    {
-                        env.tob.write({ c_addr, u });
-                        env.dstack.pop_n_unchecked(2);
-                    }
-                ).error();
+                env.tob.write({ c_addr, u });
+                env.dstack.pop_n_unchecked(2);
             }
         );
     }
@@ -672,7 +652,6 @@ namespace plapper
         );
     }
 
-    // Verbesserung: Reinterpretierung der Stapelwerte als Vorzeichenlose Ganzzahlen mittels as-Methode
     export error_status u_less_than(environment& env, void*) noexcept
     {
         return env.dstack.select(2_cuz * value_of<uint_t>).and_then(

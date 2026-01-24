@@ -30,15 +30,13 @@ namespace plapper
     export error_status roll(environment& env, void*) noexcept
     {
         return env.dstack.select(value).and_then(
-            [&env](const auto n)
+            [&env](const auto n, const auto xs)
             {
-                return env.dstack.select_at(1, subrange(n + 1)).and_then(
-                    [&env](const auto xs)
-                    {
-                        rng::rotate(xs, rng::next(rng::begin(xs)));
-                        env.dstack.pop_unchecked();
-                    }
-                ).error();
+                const auto roll_range = xs | rng::views::reverse
+                                                                         | rng::views::take(n + 1);
+
+                rng::rotate(roll_range, rng::next(rng::begin(roll_range)));
+                env.dstack.pop_unchecked();
             }
         );
     }

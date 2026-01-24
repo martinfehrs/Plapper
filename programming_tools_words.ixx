@@ -13,19 +13,22 @@ namespace plapper
 
     export [[nodiscard]] error_status dot_s(environment& env, void*) noexcept
     {
-        env.tob.write("istack:\n");
+        return env.dstack.select().and_then(
+            [&env](const auto xs)
+            {
+                env.tob.write("istack:\n");
 
-        const auto stack_size = rng::size(env.dstack);
+                const auto size = rng::size(xs);
 
-        if (stack_size == 0)
-            return error_status::success;
+                if (size == 0uz)
+                    return;
 
-        const auto index_width = rng::size(std::format("{}", stack_size - 1));
+                const auto index_width = rng::size(std::format("{}", size - 1));
 
-        for (const auto[i, elem] : env.dstack | rng::views::reverse | rng::views::enumerate )
-            env.tob.write(std::format("\t[{:{}}]: {: }\n", i, index_width, elem));
-
-        return error_status::success;
+                for (const auto[i, x] : xs | rng::views::reverse | rng::views::enumerate)
+                    env.tob.write(std::format("\t[{:{}}]: {: }\n", i, index_width, x));
+            }
+        );
     }
 
     export [[nodiscard]] error_status bye(environment& env, void*) noexcept

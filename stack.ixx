@@ -6,7 +6,6 @@ module;
 #include <expected>
 #include <ranges>
 #include <type_traits>
-#include <catch2/generators/catch_generators.hpp>
 
 export module plapper:stack;
 
@@ -137,135 +136,121 @@ namespace plapper
         requires (std::same_as<typename stack_conversion_traits<Source>::target_type, Targets> || ...);
     };
 
-    export template <stack_element Element, std::size_t extent>
-    class value_selection
+    template <typename Stack, typename... Elements>
+    class selection
     {
-
-        template <stack_element, std::size_t> friend class value_selection;
 
     public:
 
-        using element_type = Element;
-        using value_type = std::remove_cv_t<Element>;
-        using size_type = std::size_t;
-        using difference_type = std::ptrdiff_t;
-        using pointer = Element*;
-        using const_pointer = const Element*;
-        using reference = Element&;
-        using const_reference = const Element&;
-        using iterator = Element*;
-        using const_iterator = std::const_iterator<iterator>;
-        using reverse_iterator = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::const_iterator<reverse_iterator>;
-
-        explicit constexpr value_selection(error_status error) noexcept
-            : data_{ nullptr }
-            , error_{ error }
-        { }
-
-        constexpr value_selection(pointer first) noexcept
-            : data_{ first }
+        explicit selection(Stack& stack) noexcept
+            : stack{ std::addressof(stack) }
+            , first_param{ stack.top() - this->size() + 1 }
             , error_{ error_status::success }
-        { }
+        {}
 
-        constexpr value_selection(const value_selection& other) noexcept = default;
+        explicit selection(const error_status error) noexcept
+            : stack{ nullptr }
+            , first_param{ nullptr }
+            , error_{ error }
+        {}
 
-        [[nodiscard]] element_type& operator[](size_type pos) const noexcept
+        template <std::size_t pos>
+        [[nodiscard]] auto& at() const noexcept requires(pos < sizeof...(Elements))
         {
-            assert(pos < extent);
-
-            return *(data_ + pos);
+            return *reinterpret_cast<Elements...[pos]*>(this->first_param + pos);
         }
 
-        [[nodiscard]] static constexpr size_type size() noexcept
-        {
-            return extent;
-        }
-
-        [[nodiscard]] static constexpr bool empty() noexcept
-        {
-            return extent == 0;
-        }
-
-        [[nodiscard]] constexpr error_status error() const noexcept
+        [[nodiscard]] error_status error() const noexcept
         {
             return this->error_;
         }
 
-        [[nodiscard]] constexpr operator error_status() const noexcept
+        // ReSharper disable once CppNonExplicitConversionOperator
+        [[nodiscard]] operator error_status() const noexcept
         {
             return this->error_;
         }
 
-        [[nodiscard]] auto begin(this auto& self) noexcept
-        {
-            return self.data_;
-        }
-
-        [[nodiscard]] auto end(this auto& self) noexcept
-        {
-            return self.data_ + extent;
-        }
-
-        [[nodiscard]] const_iterator cbegin() const noexcept
-        {
-            return this->begin();
-        }
-
-        [[nodiscard]] const_iterator cend() const noexcept
-        {
-            return this->end();
-        }
-
-        [[nodiscard]] auto rbegin(this auto& self) noexcept
-        {
-            return std::make_reverse_iterator(self.end());
-        }
-
-        [[nodiscard]] auto rend(this auto& self) noexcept
-        {
-            return std::make_reverse_iterator(self.begin());
-        }
-
-        [[nodiscard]] const_reverse_iterator crbegin() const noexcept
-        {
-            return this->rbegin();
-        }
-
-        [[nodiscard]] const_reverse_iterator crend() const noexcept
-        {
-            return this->rend();
-        }
-
-        template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, void>)
+        template<typename Func> requires(std::same_as<std::invoke_result_t<Func, Elements&...>, void>)
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
-                func_((this->data_[indices])...);
-            };
-
-            if (this->error_ == error_status::success)
-                impl(func, std::make_index_sequence<extent>{});
-
-            return *this;
-        }
-
-        template<typename Func> requires(std::same_as<invoke_result_n_t<Func, Element&, extent>, error_status>)
-        [[nodiscard]] auto and_then(Func func) const noexcept
-        {
-            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
-            {
-                return func_(this->data_[indices]...);
+                func_(this->at<indices>()...);
             };
 
             if (this->error_ != error_status::success)
                 return *this;
 
-            const auto new_error_status = impl(func, std::make_index_sequence<extent>{});
+            impl(func, std::make_index_sequence<sizeof...(Elements)>{});
+
+            return *this;
+        }
+
+        template<typename Func> requires(
+            std::same_as<std::invoke_result_t<Func, Elements&..., std::span<typename Stack::value_type>>, void>
+        )
+        [[nodiscard]] auto and_then(Func func) const noexcept
+        {
+            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            {
+                func_(
+                    this->at<indices>()...,
+                    std::span<typename Stack::value_type>{
+                        this->stack->data(), this->stack->size() - this->size()
+                    }
+                );
+            };
+
+            if (this->error_ != error_status::success)
+                return *this;
+
+            impl(func, std::make_index_sequence<sizeof...(Elements)>{});
+
+            return *this;
+        }
+
+        template<typename Func> requires(std::same_as<std::invoke_result_t<Func, Elements&...>, error_status>)
+        [[nodiscard]] auto and_then(Func func) const noexcept
+        {
+            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            {
+                return func_(this->at<indices>()...);
+            };
+
+            if (this->error_ != error_status::success)
+                return *this;
+
+            const auto new_error_status = impl(func, std::make_index_sequence<sizeof...(Elements)>{});
 
             if (new_error_status != error_status::success)
-                return value_selection{ new_error_status };
+                return selection{ new_error_status };
+
+            return *this;
+        }
+
+        template<typename Func> requires(
+            std::same_as<std::invoke_result_t<Func, Elements&..., std::span<typename Stack::value_type>>, error_status>
+        )
+        [[nodiscard]] auto and_then(Func func) const noexcept
+        {
+            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            {
+                return func_(
+                    this->at<indices>()...,
+                    std::span<typename Stack::value_type>{
+                        this->stack->data(), this->stack->size() - this->size()
+                    }
+                );
+            };
+
+            if (this->error_ != error_status::success)
+                return *this;
+
+            const auto new_error_status = impl(func, std::make_index_sequence<sizeof...(Elements)>{});
+
+            if (new_error_status != error_status::success)
+                return selection{ new_error_status };
 
             return *this;
         }
@@ -287,279 +272,65 @@ namespace plapper
             if (this->error_ == error_status::success)
                 return *this;
 
-            return value_selection{ func() };
+            return selection{ func() };
+        }
+
+        [[nodiscard]] static consteval std::size_t size() noexcept
+        {
+            return sizeof...(Elements);
         }
 
     private:
 
-        pointer data_;
+        Stack* stack;
+        decltype(std::declval<Stack>().top()) first_param;
         error_status error_;
 
     };
 
-    export template <stack_element Element>
-    class range_selection
+    template <typename... Elements>
+    struct selection_filter
     {
-
-        template <stack_element> friend class range_selection;
-
-    public:
-
-        using element_type = Element;
-        using value_type = std::remove_cv_t<Element>;
-        using size_type = std::size_t;
-        using difference_type = std::ptrdiff_t;
-        using pointer = Element*;
-        using const_pointer = const Element*;
-        using reference = Element&;
-        using const_reference = const Element&;
-        using iterator = Element*;
-        using const_iterator = std::const_iterator<iterator>;
-        using reverse_iterator = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::const_iterator<reverse_iterator>;
-
-        constexpr range_selection(pointer first, size_type count) noexcept
-            : size_{ count }
-            , data_{ first }
-            , error_{ error_status::success }
-        { }
-
-        constexpr range_selection(pointer first, pointer last) noexcept
-            : size_{ static_cast<std::size_t>(last - first) }
-            , data_{ first }
-            , error_{ error_status::success }
-        { }
-
-        constexpr range_selection(error_status error)
-            : size_{ 0 }
-            , data_{ nullptr }
-            , error_{ error }
-        { }
-
-        constexpr range_selection(const range_selection& other) noexcept = default;
-
-        [[nodiscard]] element_type& operator[](size_type pos) const noexcept
+        template <typename Stack>
+        [[nodiscard]] static constexpr auto select(Stack& stack) noexcept
         {
-            assert(pos < this->size_);
+            using result_type = selection<
+                Stack,
+                std::conditional_t<std::same_as<Elements, void>, typename Stack::value_type, Elements>...
+            >;
 
-            return *(data_ + pos);
-        }
-
-        [[nodiscard]] constexpr size_type size() const noexcept
-        {
-            return this->size_;
-        }
-
-        [[nodiscard]] constexpr bool empty() const noexcept
-        {
-            return this->size_ == 0;
-        }
-
-        [[nodiscard]] constexpr error_status error() const noexcept
-        {
-            return this->error_;
-        }
-
-        [[nodiscard]] auto begin(this auto& self) noexcept
-        {
-            return self.data_;
-        }
-
-        [[nodiscard]] auto end(this auto& self) noexcept
-        {
-            return self.data_ + self.size_;
-        }
-
-        [[nodiscard]] const_iterator cbegin() const noexcept
-        {
-            return this->begin();
-        }
-
-        [[nodiscard]] const_iterator cend() const noexcept
-        {
-            return this->end();
-        }
-
-        [[nodiscard]] auto rbegin(this auto& self) noexcept
-        {
-            return std::make_reverse_iterator(self.end());
-        }
-
-        [[nodiscard]] auto rend(this auto& self) noexcept
-        {
-            return std::make_reverse_iterator(self.begin());
-        }
-
-        [[nodiscard]] const_reverse_iterator crbegin() const noexcept
-        {
-            return this->rbegin();
-        }
-
-        [[nodiscard]] const_reverse_iterator crend() const noexcept
-        {
-            return this->rend();
-        }
-
-        template<typename Func>
-        [[nodiscard]] auto and_then(Func func) const noexcept requires(
-            std::same_as<std::invoke_result_t<Func, decltype(*this)>, void>
-        )
-        {
-            if (this->error_ == error_status::success)
-                func(*this);
-
-            return *this;
-        }
-
-        template<typename Func>
-        [[nodiscard]] auto and_then(Func func) const noexcept requires(
-            std::same_as<std::invoke_result_t<Func, decltype(*this)>, error_status>
-        )
-        {
-            if (this->error_ != error_status::success)
-                return *this;
-
-            const auto new_error_status = func(*this);
-
-            if (new_error_status != error_status::success)
-                return value_selection{ new_error_status };
-
-            return *this;
-        }
-
-    private:
-
-        size_type size_;
-        pointer data_;
-        error_status error_;
-
-    };
-
-    template <typename Filter, typename StackPointer>
-    concept selection_filter = requires(Filter filter, StackPointer stack_pointer)
-    {
-        typename Filter::template result_type<StackPointer>;
-        { filter.count() } -> std::same_as<std::size_t>;
-        { filter.select(stack_pointer) } -> std::same_as<typename Filter::template result_type<StackPointer>>;
-    };
-
-    export template <std::size_t count_> requires (count_> 0)
-    struct values_t
-    {
-        template <typename StackPointer>
-        using result_type = value_selection<std::remove_pointer_t<StackPointer>, count_>;
-
-        template <typename StackPointer>
-        [[nodiscard]] static auto select(StackPointer stack_pointer) noexcept
-        {
-            return result_type<StackPointer>{ stack_pointer - count_ };
-        }
-
-        [[nodiscard]] static std::size_t count() noexcept
-        {
-            return count_;
+            return stack.has(sizeof...(Elements))
+                ? result_type{ stack }
+                : result_type{ error_status::stack_underflow };
         }
     };
 
-    export template <typename ValueType, std::size_t count_> requires (count_> 0)
-    struct values_of_t
+    export template <typename Element>
+    inline constexpr selection_filter<Element> value_of{};
+
+    export inline constexpr selection_filter<void> value;
+
+    template <typename... Elements1, typename... Elements2>
+    [[nodiscard]] consteval auto operator+(
+       selection_filter<Elements1...>, selection_filter<Elements2...>
+    ) noexcept
     {
-        template <typename StackPointer>
-        using result_type = value_selection<std::remove_pointer_t<replace_base_t<StackPointer, ValueType>>, count_>;
-
-        template <typename StackPointer>
-        [[nodiscard]] static auto select(StackPointer stack_pointer) noexcept
-        {
-            return result_type<StackPointer>{
-                reinterpret_cast<replace_base_t<StackPointer, ValueType>>(stack_pointer - count_)
-            };
-        }
-
-        [[nodiscard]] static std::size_t count() noexcept
-        {
-            return count_;
-        }
-    };
-
-    export inline constexpr values_t<1> value;
-
-    export template <typename ValueType>
-    inline constexpr values_of_t<ValueType, 1> value_of{};
-
-    export template <std::size_t multiplicator, std::size_t count>
-    [[nodiscard]] consteval auto operator*(size_constant<multiplicator>, values_t<count>) noexcept
-    {
-        return values_t<multiplicator * count>{};
+        return selection_filter<Elements1..., Elements2...>{};
     }
 
-    export template <typename ValueType, std::size_t multiplicator, std::size_t count>
-    [[nodiscard]] consteval auto operator*(size_constant<multiplicator>, values_of_t<ValueType, count>) noexcept
+    export template <typename... Elements, std::size_t multiplicator>
+    [[nodiscard]] consteval auto operator*(
+        size_constant<multiplicator>, selection_filter<Elements...> description
+    ) noexcept
     {
-        return values_of_t<ValueType, multiplicator * count>{};
-    }
-
-    export struct subrange_t
-    {
-        template <typename StackPointer>
-        using result_type = range_selection<std::remove_pointer_t<StackPointer>>;
-
-        explicit subrange_t(const std::size_t count) noexcept
-            : count_{ count }
-        { }
-
-        template <typename StackPointer>
-        [[nodiscard]] auto select(StackPointer stack_pointer) const noexcept
+        if constexpr(multiplicator == 1uz)
         {
-            return result_type<StackPointer>{ stack_pointer - this->count_, this->count_ };
+            return description;
         }
-
-        [[nodiscard]] std::size_t count() const noexcept
+        else
         {
-            return this->count_;
+            return description + size_constant<multiplicator - 1uz>{} * description;
         }
-
-    private:
-
-        std::size_t count_;
-    };
-
-    export template <typename ValueType>
-    struct subrange_of_t
-    {
-        template <typename StackPointer>
-        using result_type = range_selection<std::remove_pointer_t<replace_base_t<StackPointer, ValueType>>>;
-
-        explicit subrange_of_t(const std::size_t count) noexcept
-            : count_{ count }
-        { }
-
-        template <typename StackPointer>
-        [[nodiscard]] auto select(StackPointer stack_pointer) const noexcept
-        {
-            return result_type<StackPointer>{
-                reinterpret_cast<replace_base_t<StackPointer, ValueType>>(stack_pointer - this->count_), this->count_
-            };
-        }
-
-        [[nodiscard]] std::size_t count() const noexcept
-        {
-            return this->count_;
-        }
-
-    private:
-
-        std::size_t count_;
-    };
-
-    export [[nodiscard]] constexpr auto subrange(const std::size_t count) noexcept
-    {
-        return subrange_t{ count };
-    }
-
-    export template <typename ValueType>
-    [[nodiscard]] constexpr auto subrange_of(const std::size_t count) noexcept
-    {
-        return subrange_of_t<ValueType>{ count };
     }
 
     export template <stack_value DefaultValue, equally_sized_stack_values<DefaultValue>... FurtherValues> class stack
@@ -573,6 +344,8 @@ namespace plapper
         using value_type = DefaultValue;
         using reference = DefaultValue&;
         using const_reference = const DefaultValue&;
+        using pointer = DefaultValue*;
+        using const_pointer = const DefaultValue*;
         using const_iterator = const DefaultValue*;
 
         stack() = default;
@@ -725,6 +498,26 @@ namespace plapper
             return this->size_ == 0;
         }
 
+        [[nodiscard]] const_pointer data() const noexcept
+        {
+            return this->data_;
+        }
+
+        [[nodiscard]] pointer data() noexcept
+        {
+            return const_cast<pointer>(std::as_const(*this).data());
+        }
+
+        [[nodiscard]] const_pointer top() const noexcept
+        {
+            return this->data_ + this->size_ - 1uz;
+        }
+
+        [[nodiscard]] pointer top() noexcept
+        {
+            return const_cast<pointer>(std::as_const(*this).top());
+        }
+
         [[nodiscard]] auto begin(this auto& self) noexcept
         {
             return self.data_;
@@ -750,24 +543,10 @@ namespace plapper
             this->size_ = 0;
         }
 
-        template <typename Filter>
-        [[nodiscard]] auto select(this auto& self, Filter filter) noexcept
-            requires selection_filter<Filter, decltype(self.data_)>
+        template <typename Self, typename... Filter> requires (is_instance_of_v<Filter, selection_filter> && ...)
+        [[nodiscard]] auto select(this Self& self, Filter... filter) noexcept
         {
-            if (self.size_ < filter.count())
-                return typename Filter::template result_type<decltype(self.data_)>{ error_status::stack_underflow };
-
-            return filter.select(self.data_ + self.size_);
-        }
-
-        template <typename Filter>
-        [[nodiscard]] auto select_at(this auto& self, size_type start, Filter filter) noexcept
-            requires selection_filter<Filter, decltype(self.data_)>
-        {
-            if (self.size_ < start + filter.count())
-                return typename Filter::template result_type<decltype(self.data_)>{ error_status::stack_underflow };
-
-            return filter.select(self.data_ + self.size_ - start);
+            return (filter + ... + selection_filter{}).select(self);
         }
 
         template <size_type count>
@@ -784,7 +563,7 @@ namespace plapper
                     this->pop_n_unchecked(count - 1);
                 }
 
-                this->select(value)[0] = new_value;
+                this->select(value).template at<0>() = new_value;
 
                 return error_status::success;
             }
