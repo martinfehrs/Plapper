@@ -136,28 +136,42 @@ namespace plapper
         requires (std::same_as<typename stack_conversion_traits<Source>::target_type, Targets> || ...);
     };
 
-    template <typename Stack, typename... Elements>
-    class selection
+    template <bool, typename RangeElement>
+    struct range_addr_storage
+    {
+        RangeElement* range_addr;
+    };
+
+    template<typename RangeElement>
+    struct range_addr_storage<false, RangeElement>
+    { };
+
+    template <bool has_range, typename RangeElement, typename... Elements>
+    class selection : range_addr_storage<has_range, RangeElement>
     {
 
     public:
 
-        explicit selection(Stack& stack) noexcept
-            : stack{ std::addressof(stack) }
-            , first_param{ stack.top() - this->size() + 1 }
+        explicit selection(RangeElement* range_addr, RangeElement* first_param_addr) noexcept requires has_range
+            : range_addr_storage<has_range, RangeElement>{ range_addr }
+            , first_param_addr{ first_param_addr }
+            , error_{ error_status::success }
+        {}
+
+        explicit selection(RangeElement* first_param_addr) noexcept requires (!has_range)
+            : first_param_addr{ first_param_addr }
             , error_{ error_status::success }
         {}
 
         explicit selection(const error_status error) noexcept
-            : stack{ nullptr }
-            , first_param{ nullptr }
+            : first_param_addr{ nullptr }
             , error_{ error }
         {}
 
         template <std::size_t pos>
         [[nodiscard]] auto& at() const noexcept requires(pos < sizeof...(Elements))
         {
-            return *reinterpret_cast<Elements...[pos]*>(this->first_param + pos);
+            return *reinterpret_cast<Elements...[pos]*>(this->first_param_addr + pos);
         }
 
         [[nodiscard]] error_status error() const noexcept
@@ -171,7 +185,7 @@ namespace plapper
             return this->error_;
         }
 
-        template<typename Func> requires(std::same_as<std::invoke_result_t<Func, Elements&...>, void>)
+        template<typename Func> requires (!has_range) && std::same_as<std::invoke_result_t<Func, Elements&...>, void>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
@@ -187,18 +201,17 @@ namespace plapper
             return *this;
         }
 
-        template<typename Func> requires(
-            std::same_as<std::invoke_result_t<Func, Elements&..., std::span<typename Stack::value_type>>, void>
-        )
+        template<typename Func>
+            requires has_range && std::same_as<std::invoke_result_t<Func, std::span<RangeElement>, Elements&...>, void>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 func_(
-                    this->at<indices>()...,
-                    std::span<typename Stack::value_type>{
-                        this->stack->data(), this->stack->size() - this->size()
-                    }
+                    std::span<RangeElement>{
+                        this->range_addr, static_cast<std::size_t>(this->first_param_addr - this->range_addr)
+                    },
+                    this->at<indices>()...
                 );
             };
 
@@ -210,7 +223,8 @@ namespace plapper
             return *this;
         }
 
-        template<typename Func> requires(std::same_as<std::invoke_result_t<Func, Elements&...>, error_status>)
+        template<typename Func>
+            requires (!has_range) && std::same_as<std::invoke_result_t<Func, Elements&...>, error_status>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
@@ -229,18 +243,18 @@ namespace plapper
             return *this;
         }
 
-        template<typename Func> requires(
-            std::same_as<std::invoke_result_t<Func, Elements&..., std::span<typename Stack::value_type>>, error_status>
-        )
+        template<typename Func>
+            requires has_range
+                  && std::same_as<std::invoke_result_t<Func, std::span<RangeElement>, Elements&...>, error_status>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
             static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 return func_(
-                    this->at<indices>()...,
-                    std::span<typename Stack::value_type>{
-                        this->stack->data(), this->stack->size() - this->size()
-                    }
+                    std::span<RangeElement>{
+                        this->range_addr, static_cast<std::size_t>(this->first_param_addr - this->range_addr)
+                    },
+                    this->at<indices>()...
                 );
             };
 
@@ -282,28 +296,21 @@ namespace plapper
 
     private:
 
-        Stack* stack;
-        decltype(std::declval<Stack>().top()) first_param;
+        RangeElement* first_param_addr;
         error_status error_;
 
     };
 
-    template <typename... Elements>
-    struct selection_filter
-    {
-        template <typename Stack>
-        [[nodiscard]] static constexpr auto select(Stack& stack) noexcept
-        {
-            using result_type = selection<
-                Stack,
-                std::conditional_t<std::same_as<Elements, void>, typename Stack::value_type, Elements>...
-            >;
+    template <typename Element>
+    struct range_filter { };
 
-            return stack.has(sizeof...(Elements))
-                ? result_type{ stack }
-                : result_type{ error_status::stack_underflow };
-        }
-    };
+    template <typename Element>
+    inline constexpr range_filter<Element> range_of;
+
+    export inline constexpr range_filter<void> range;
+
+    template <typename...>
+    struct selection_filter { };
 
     export template <typename Element>
     inline constexpr selection_filter<Element> value_of{};
@@ -543,10 +550,20 @@ namespace plapper
             this->size_ = 0;
         }
 
-        template <typename Self, typename... Filter> requires (is_instance_of_v<Filter, selection_filter> && ...)
-        [[nodiscard]] auto select(this Self& self, Filter... filter) noexcept
+
+        template <typename Self, typename RangeFilter, typename... Filters>
+            requires is_instance_of_v<RangeFilter, range_filter>
+                  && (is_instance_of_v<Filters, selection_filter> && ... && true)
+        [[nodiscard]] auto select(this Self& self, RangeFilter range_filter_, Filters... filters) noexcept
         {
-            return (filter + ... + selection_filter{}).select(self);
+            return self.select_impl(range_filter_, (filters + ... + selection_filter{}));
+        }
+
+        template <typename Self, typename... Filters>
+            requires (is_instance_of_v<Filters, selection_filter> && ... && true)
+        [[nodiscard]] auto select(this Self& self, Filters... filters) noexcept
+        {
+            return self.select_impl((filters + ... + selection_filter{}));
         }
 
         template <size_type count>
@@ -563,7 +580,7 @@ namespace plapper
                     this->pop_n_unchecked(count - 1);
                 }
 
-                this->select(value).template at<0>() = new_value;
+                this->data_[this->size_ - 1] = new_value;
 
                 return error_status::success;
             }
@@ -586,6 +603,42 @@ namespace plapper
         }
 
     private:
+
+        template <typename T>
+        static constexpr bool is_allowed_type_v{
+            ((std::same_as<T, DefaultValue> || std::same_as<T, void>) || ... || std::same_as<T, FurtherValues>)
+        };
+
+        template <typename Self, typename RangeElement, typename... Elements>
+            requires is_allowed_type_v<RangeElement> && (is_allowed_type_v<Elements> && ... && true)
+        [[nodiscard]] auto select_impl(
+            this Self& self, range_filter<RangeElement>, selection_filter<Elements...>
+        ) noexcept
+        {
+            using result_type = selection<
+                true,
+                std::conditional_t<std::same_as<RangeElement, void>, DefaultValue, RangeElement>,
+                std::conditional_t<std::same_as<Elements, void>, DefaultValue, Elements>...
+            >;
+
+            return self.has(sizeof...(Elements))
+                ? result_type{ self.data_, self.data_ + self.size_ - sizeof...(Elements) }
+                : result_type{ error_status::stack_underflow };
+
+        }
+
+        template <typename Self, typename... Elements> requires  (is_allowed_type_v<Elements> && ... && true)
+        [[nodiscard]] auto select_impl(this Self& self, selection_filter<Elements...>) noexcept
+        {
+            using result_type = selection<
+                 false,
+                 DefaultValue,
+                 std::conditional_t<std::same_as<Elements, void>, DefaultValue, Elements>...
+            >;
+
+            return self.has(sizeof...(Elements)) ? result_type{ self.data_ + self.size_ - sizeof...(Elements) }
+                                                 : result_type{ error_status::stack_underflow };
+        }
 
         template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values, std::size_t... indices>
         void push_impl(std::index_sequence<indices...>, Values... values) noexcept

@@ -13,7 +13,7 @@ namespace plapper
 
     export [[nodiscard]] error_status dot_s(environment& env, void*) noexcept
     {
-        return env.dstack.select().and_then(
+        return env.dstack.select(range).and_then(
             [&env](const auto xs)
             {
                 env.tob.write("istack:\n");
