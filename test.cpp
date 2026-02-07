@@ -261,7 +261,7 @@ TEST_CASE("drop", "[drop][words]")
 
 TEST_CASE("equals", "[equals][words]")
 {
-    SECTION("successful exection")
+    SECTION("successful execution")
     {
         const int_t param1 = GENERATE(-1, 0, 1);
         const int_t param2 = GENERATE(-1, 0, 1);
