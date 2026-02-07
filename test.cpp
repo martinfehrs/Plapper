@@ -1,12 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators_all.hpp>
 
-#include <cstdint>
 #include <utility>
+#include <ranges>
 
 import plapper;
 
 using namespace plapper;
+
+namespace rng = std::ranges;
 
 static environment test_env()
 {
@@ -47,7 +49,7 @@ TEST_CASE("plus", "[plus][words]" )
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(plus(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(result));
+        REQUIRE(rng::equal(env.dstack, std::array{ result }));
     }
 
     SECTION("insufficient arguments")
@@ -58,7 +60,7 @@ TEST_CASE("plus", "[plus][words]" )
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(plus(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -83,7 +85,7 @@ TEST_CASE("minus", "[minus][words]" )
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(minus(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(result));
+        REQUIRE(rng::equal(env.dstack, std::array{ result }));
     }
 
     SECTION("insufficient arguments")
@@ -94,7 +96,7 @@ TEST_CASE("minus", "[minus][words]" )
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(minus(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -121,7 +123,7 @@ TEST_CASE("times", "[times][words]" )
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(times(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(result));
+        REQUIRE(rng::equal(env.dstack, std::array{ result }));
     }
 
     SECTION("insufficient arguments")
@@ -132,7 +134,7 @@ TEST_CASE("times", "[times][words]" )
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(times(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -144,7 +146,7 @@ TEST_CASE("divide", "[divide][words]" )
 
         REQUIRE(env.dstack.push(2, 2) == error_status::success);
         REQUIRE(divide(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(2 / 2));
+        REQUIRE(rng::equal(env.dstack, std::array{ 2 / 2 }));
     }
 
     SECTION("insufficient arguments")
@@ -155,7 +157,7 @@ TEST_CASE("divide", "[divide][words]" )
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(divide(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 
     SECTION("division by zero")
@@ -167,7 +169,7 @@ TEST_CASE("divide", "[divide][words]" )
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(divide(env, nullptr) == error_status::division_by_zero);
-        REQUIRE(env.dstack == data_stack::containing(param1, param2));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1, param2 }));
     }
 }
 
@@ -182,7 +184,7 @@ TEST_CASE("mod", "[mod][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(mod(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param1 % param2));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 % param2 }));
     }
 
     SECTION("insufficient arguments")
@@ -193,7 +195,7 @@ TEST_CASE("mod", "[mod][words]")
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(mod(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 
     SECTION("division by zero")
@@ -205,7 +207,7 @@ TEST_CASE("mod", "[mod][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(mod(env, nullptr) == error_status::division_by_zero);
-        REQUIRE(env.dstack == data_stack::containing(param1, param2));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1, param2 }));
     }
 }
 
@@ -220,7 +222,7 @@ TEST_CASE("swap", "[swap][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(swap(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param2, param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param2, param1 }));
     }
 
     SECTION("insufficient arguments")
@@ -231,7 +233,7 @@ TEST_CASE("swap", "[swap][words]")
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(swap(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -250,7 +252,7 @@ TEST_CASE("drop", "[drop][words]")
 
     SECTION("insufficient arguments")
     {
-        environment env{ .istack{} };
+        environment env{};
 
         REQUIRE(drop(env, nullptr) == error_status::stack_underflow);
         REQUIRE(env.dstack.empty());
@@ -268,7 +270,7 @@ TEST_CASE("equals", "[equals][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(equals(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param1 == param2 ? yes : no));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 == param2 ? yes : no }));
     }
 
     SECTION("insufficient arguments")
@@ -279,7 +281,7 @@ TEST_CASE("equals", "[equals][words]")
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(equals(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -294,7 +296,7 @@ TEST_CASE("less-than", "[less-than][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(less_than(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param1 < param2 ? yes : no));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 < param2 ? yes : no }));
     }
 
     SECTION("insufficient arguments")
@@ -305,7 +307,7 @@ TEST_CASE("less-than", "[less-than][words]")
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(less_than(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }
 
@@ -321,7 +323,7 @@ TEST_CASE("rotate", "[rotate][words]")
 
         REQUIRE(env.dstack.push(param1, param2, param3) == error_status::success);
         REQUIRE(rote(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param2, param3, param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param2, param3, param1 }));
     }
 
     SECTION("insufficient arguments")
@@ -333,7 +335,7 @@ TEST_CASE("rotate", "[rotate][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(rote(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1, param2));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1, param2 }));
     }
 }
 
@@ -348,7 +350,7 @@ TEST_CASE("over", "[over][words]")
 
         REQUIRE(env.dstack.push(param1, param2) == error_status::success);
         REQUIRE(over(env, nullptr) == error_status::success);
-        REQUIRE(env.dstack == data_stack::containing(param1, param2, param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1, param2, param1 }));
     }
 
     SECTION("insufficient arguments")
@@ -359,6 +361,6 @@ TEST_CASE("over", "[over][words]")
 
         REQUIRE(env.dstack.push(param1) == error_status::success);
         REQUIRE(over(env, nullptr) == error_status::stack_underflow);
-        REQUIRE(env.dstack == data_stack::containing(param1));
+        REQUIRE(rng::equal(env.dstack, std::array{ param1 }));
     }
 }

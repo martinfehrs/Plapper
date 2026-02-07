@@ -389,18 +389,7 @@ namespace plapper
 
             return stack;
         }
-
-        template <equally_sized_stack_values<DefaultValue> ... Values>
-        [[nodiscard]] static std::expected<stack, error_status> containing(Values... values) noexcept
-        {
-            auto stack = of_size(sizeof...(Values));
-
-            if (stack)
-                stack->unchecked_push(values...);
-
-            return stack;
-        }
-
+        
         error_status reserve(const size_type new_cell_capacity) noexcept
         {
             if (new_cell_capacity > this->capacity_)

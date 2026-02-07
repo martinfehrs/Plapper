@@ -549,6 +549,9 @@ namespace plapper
         return env.dstack.select(2_cuz * value).and_then(
             [&env](const auto n1, const auto n2)
             {
+                if (n2 == 0)
+                    return error_status::division_by_zero;
+
                 return env.dstack.replace<2>(n1 % n2);
             }
         );
