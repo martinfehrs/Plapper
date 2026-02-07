@@ -17,7 +17,8 @@ namespace plapper
         stack_overflow,
         out_of_memory,
         out_of_words,
-        unknown_word
+        unknown_word,
+        out_of_range
     };
 
     constexpr std::array error_messages {
