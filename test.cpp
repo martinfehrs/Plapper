@@ -13,8 +13,8 @@ namespace rng = std::ranges;
 static environment test_env()
 {
     auto dict = dictionary::of_size(65536);
-    auto dstack = data_stack::of_size(64);
-    auto rstack = return_stack::of_size(64);
+    auto dstack = data_stack::of_capacity(64);
+    auto rstack = return_stack::of_capacity(64);
 
     REQUIRE(dict);
     REQUIRE(dstack);
@@ -252,7 +252,7 @@ TEST_CASE("drop", "[drop][words]")
 
     SECTION("insufficient arguments")
     {
-        environment env{};
+        environment env = test_env();
 
         REQUIRE(drop(env, nullptr) == error_status::stack_underflow);
         REQUIRE(env.dstack.empty());

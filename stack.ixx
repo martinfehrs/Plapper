@@ -13,6 +13,7 @@ import :error;
 import :constant_size_literals;
 import :core_constants;
 import :type_traits;
+import :memory_buffer;
 
 namespace rng = std::ranges;
 
@@ -354,95 +355,37 @@ namespace plapper
         using pointer = DefaultValue*;
         using const_pointer = const DefaultValue*;
         using const_iterator = const DefaultValue*;
-
-        stack() = default;
-
-        ~stack() noexcept
-        {
-            std::free(this->data_);
-        }
+        using buffer_type = dynamic_buffer<DefaultValue>;
 
         stack(const stack&) = delete;
+        stack(stack&& that) noexcept = default;
         stack& operator=(const stack&) = delete;
+        stack& operator=(stack&& that) noexcept = default;
 
-        stack(stack&& that) noexcept
-            : stack{}
+
+        [[nodiscard]] static std::expected<stack, error_status> of_capacity(const std::size_t capacity) noexcept
         {
-            this->swap(that);
+            auto buffer = buffer_type::of_capacity(capacity);
+
+            if (!buffer)
+                return std::unexpected(buffer.error());
+
+            return stack{ std::move(*buffer) };
         }
 
-        stack& operator=(stack&& that) noexcept
-        {
-            this->swap(that);
-
-            return *this;
-        }
-
-        [[nodiscard]] static std::expected<stack, error_status> of_size(const std::size_t cell_capacity) noexcept
-        {
-            stack stack{};
-
-            auto stat = stack.reserve(cell_capacity);
-
-            if (stat != error_status::success)
-                return std::unexpected(stat);
-
-            return stack;
-        }
-        
-        error_status reserve(const size_type new_cell_capacity) noexcept
-        {
-            if (new_cell_capacity > this->capacity_)
-            {
-                const auto new_data = static_cast<DefaultValue*>(
-                    std::realloc(this->data_, new_cell_capacity * sizeof(value_type)));
-
-                if (!new_data)
-                    return error_status::out_of_memory;
-
-                this->data_ = new_data;
-                this->capacity_ = new_cell_capacity;
-            }
-
-            return error_status::success;
-        }
-
-        [[nodiscard]] size_type capacity() const noexcept
-        {
-            return this->capacity_;
-        }
-
-        template <std::equality_comparable_with<value_type> ThatValue>
-        [[nodiscard]] bool operator==(std::initializer_list<value_type> il) const noexcept
-        {
-            return rng::equal(rng::views::counted(this->data_, this->size_), il);
-        }
-
-        template <std::equality_comparable_with<value_type> ThatValue>
-        [[nodiscard]] bool operator==(const stack<ThatValue>& that) const noexcept
-        {
-            return rng::equal(rng::views::counted(this->data_, this->size_),
-                              rng::views::counted(that.data_ , that.size_ ));
-        }
-
-        template <std::equality_comparable_with<value_type> ThatValue>
-        [[nodiscard]] bool operator!=(const stack<ThatValue>& that) const noexcept
-        {
-            return !((*this) == that);
-        }
+        [[nodiscard]] bool operator==(const stack& that) const noexcept = default;
 
         template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values>
         void push_unchecked(Values... values) noexcept
         {
+            std::ignore = this->buffer_.resize(this->buffer_.size() + sizeof...(Values));
             this->push_impl(std::index_sequence_for<Values...>{}, values...);
-
-            this->size_ += sizeof...(Values);
         }
 
         template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values>
         [[nodiscard]] error_status push(Values... values) noexcept
         {
-            if (this->size_ + sizeof...(Values) > this->capacity_)
+            if (this->buffer_.size() + sizeof...(Values) > this->buffer_.capacity())
                 return error_status::stack_overflow;
 
             push_unchecked(values...);
@@ -452,21 +395,21 @@ namespace plapper
 
         void pop_unchecked() noexcept
         {
-            assert(this->size_ > 0);
+            assert(!this->empty());
 
-            --this->size_;
+            std::ignore = this->buffer_.resize(this->buffer_.size() - 1uz);
         }
 
         void pop_n_unchecked(size_type count) noexcept
         {
-            assert(this->size_ >= count);
+            assert(this->buffer_.size() >= count);
 
-            this->size_ -= count;
+            std::ignore = this->buffer_.resize(this->buffer_.size() - count);
         }
 
         [[nodiscard]] error_status pop() noexcept
         {
-            if (this->size_ == 0)
+            if (this->buffer_.empty())
                 return error_status::stack_underflow;
 
             this->pop_unchecked();
@@ -476,7 +419,7 @@ namespace plapper
 
         [[nodiscard]] error_status pop_n(size_type count) noexcept
         {
-            if (this->size_ < count)
+            if (this->buffer_.size() < count)
                 return error_status::stack_underflow;
 
             this->pop_n_unchecked(count);
@@ -486,17 +429,17 @@ namespace plapper
 
         [[nodiscard]] size_type size() const noexcept
         {
-            return this->size_;
+            return this->buffer_.size();
         }
 
         [[nodiscard]] bool empty() const noexcept
         {
-            return this->size_ == 0;
+            return this->buffer_.empty();
         }
 
         [[nodiscard]] const_pointer data() const noexcept
         {
-            return this->data_;
+            return this->buffer_.data();
         }
 
         [[nodiscard]] pointer data() noexcept
@@ -506,7 +449,7 @@ namespace plapper
 
         [[nodiscard]] const_pointer top() const noexcept
         {
-            return this->data_ + this->size_ - 1uz;
+            return this->buffer_.data() + this->buffer_.size() - 1uz;
         }
 
         [[nodiscard]] pointer top() noexcept
@@ -516,27 +459,27 @@ namespace plapper
 
         [[nodiscard]] auto begin(this auto& self) noexcept
         {
-            return self.data_;
+            return rng::begin(self.buffer_);
         }
 
         [[nodiscard]] auto end(this auto& self) noexcept
         {
-            return self.data_ + self.size_;
+            return rng::end(self.buffer_);
         }
 
         [[nodiscard]] auto& operator[](this auto& self, size_type pos) noexcept
         {
-            return self.data_[self.size_ - 1 - pos];
+            return self.buffer_[self.buffer_.size() - 1 - pos];
         }
 
         [[nodiscard]] bool has(size_type count) const noexcept
         {
-            return this->size_ >= count;
+            return this->buffer_.size() >= count;
         }
 
         void clear() noexcept
         {
-            this->size_ = 0;
+            this->buffer_.clear();
         }
 
 
@@ -558,18 +501,18 @@ namespace plapper
         template <size_type count>
         error_status replace(value_type new_value)
         {
-            if constexpr (count == 0)
+            if constexpr (count == 0uz)
             {
                 return this->push(new_value);
             }
             else
             {
-                if constexpr(count > 1)
+                if constexpr(count > 1uz)
                 {
-                    this->pop_n_unchecked(count - 1);
+                    this->pop_n_unchecked(count - 1uz);
                 }
 
-                this->data_[this->size_ - 1] = new_value;
+                this->buffer_[this->buffer_.size() - 1uz] = new_value;
 
                 return error_status::success;
             }
@@ -580,18 +523,22 @@ namespace plapper
         {
             assert(count <= this->size());
 
-            if constexpr (count == 0)
+            if constexpr (count == 0uz)
             {
                 return this->push(new_value, new_values...);
             }
             else
             {
-                this->data_[this->size_ - count] = new_value;
-                return replace<count - 1>(new_values...);
+                this->buffer_[this->buffer_.size() - count] = new_value;
+                return replace<count - 1uz>(new_values...);
             }
         }
 
     private:
+
+        explicit stack(buffer_type&& buffer) noexcept
+            : buffer_{ std::move(buffer) }
+        { }
 
         template <typename T>
         static constexpr bool is_allowed_type_v{
@@ -611,7 +558,7 @@ namespace plapper
             >;
 
             return self.has(sizeof...(Elements))
-                ? result_type{ self.data_, self.data_ + self.size_ - sizeof...(Elements) }
+                ? result_type{ rng::begin(self.buffer_), rng::begin(self.buffer_) + self.buffer_.size() - sizeof...(Elements) }
                 : result_type{ error_status::stack_underflow };
 
         }
@@ -625,29 +572,24 @@ namespace plapper
                  std::conditional_t<std::same_as<Elements, void>, DefaultValue, Elements>...
             >;
 
-            return self.has(sizeof...(Elements)) ? result_type{ self.data_ + self.size_ - sizeof...(Elements) }
+            return self.has(sizeof...(Elements)) ? result_type{ rng::begin(self.buffer_) + self.buffer_.size() - sizeof...(Elements) }
                                                  : result_type{ error_status::stack_underflow };
         }
 
         template <stack_compatible_value<DefaultValue, FurtherValues...> ... Values, std::size_t... indices>
         void push_impl(std::index_sequence<indices...>, Values... values) noexcept
         {
-            ((this->data_[this->size_ + indices] = values), ...);
+            ((this->buffer_[this->buffer_.size() - sizeof...(values) + indices] = values), ...);
         }
 
         void swap(stack& that) noexcept
         {
             using std::swap;
 
-            swap(this->data_, that.data_);
-            swap(this->capacity_, that.capacity_);
-            swap(this->size_, that.size_);
+            swap(this->buffer_, that.buffer_);
         }
 
-        DefaultValue* data_ = nullptr;
-        std::size_t capacity_ = 0;
-        std::size_t size_ = 0;
-
+        buffer_type buffer_;
     };
 
 }

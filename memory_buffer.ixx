@@ -10,6 +10,7 @@ module;
 export module plapper:memory_buffer;
 
 import :error;
+import :uninitialized;
 
 namespace plapper
 {
@@ -32,20 +33,41 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        static std::expected<dynamic_buffer, error_status> of_size(std::size_t size) noexcept
+        explicit constexpr dynamic_buffer(uninitialized_t) noexcept
+        { }
+
+        constexpr dynamic_buffer() noexcept
+            : data_{ nullptr }
+            , size_{ 0uz }
+            , capacity_{ 0uz }
+        { }
+
+        dynamic_buffer(const dynamic_buffer& that) = delete;
+
+        constexpr dynamic_buffer(dynamic_buffer&& that) noexcept
+            : dynamic_buffer{}
         {
-            dynamic_buffer instance{ size };
+            this->swap(that);
+        }
+
+        static std::expected<dynamic_buffer, error_status> of_capacity(const std::size_t capacity) noexcept
+        {
+            dynamic_buffer instance{ uninitialized };
+
+            instance.data_ = static_cast<Element*>(malloc(capacity * sizeof(Element)));
 
             if (instance.data_ == nullptr)
                 return std::unexpected(error_status::out_of_memory);
 
+            instance.size_ = 0uz;
+            instance.capacity_ = capacity;
+
             return instance;
         }
 
-        constexpr dynamic_buffer(dynamic_buffer&& that) noexcept
-        {
-            this->swap(that);
-        }
+        dynamic_buffer& operator=(const dynamic_buffer& that) = delete;
+
+
 
         constexpr dynamic_buffer& operator=(dynamic_buffer&& that) noexcept
         {
@@ -56,7 +78,7 @@ namespace plapper
 
         ~dynamic_buffer() noexcept
         {
-            std::free(data);
+            std::free(this->data_);
         }
 
         [[nodiscard]] constexpr const_pointer data() const noexcept
@@ -74,6 +96,16 @@ namespace plapper
             return this->size_;
         }
 
+        [[nodiscard]] constexpr std::size_t capacity() const noexcept
+        {
+            return this->capacity_;
+        }
+
+        [[nodiscard]] constexpr bool empty() const noexcept
+        {
+            return this->size_ == 0uz;
+        }
+
         [[nodiscard]] constexpr const_reference operator[](std::size_t pos) const noexcept
         {
             return this->data[pos];
@@ -81,7 +113,18 @@ namespace plapper
 
         [[nodiscard]] constexpr reference operator[](std::size_t pos) noexcept
         {
-            return const_cast<reference>(std::as_const(*this).data[pos]);
+            return const_cast<reference>(std::as_const(*this).data_[pos]);
+        }
+
+        [[nodiscard]] bool operator==(const dynamic_buffer& that) const noexcept
+        {
+            return this->size_ == that.size_
+                && std::memcmp(this->data_, that.data_, this->size_) == 0;
+        }
+
+        [[nodiscard]] bool operator!=(const dynamic_buffer& that) const noexcept
+        {
+            return !(*this == that);
         }
 
         [[nodiscard]] const_iterator cbegin() const noexcept
@@ -144,21 +187,33 @@ namespace plapper
             return std::make_reverse_iterator(this->begin());
         }
 
-    private:
+        error_status resize(std::size_t size) noexcept
+        {
+            if (size > this->capacity_)
+                return error_status::out_of_memory;
 
-        explicit dynamic_buffer(const std::size_t size) noexcept
-            : data_{ static_cast<Element*>(std::malloc(size * sizeof(Element))) }
-            , size_{ size }
-        { }
+            this->size_ = size;
+
+            return error_status::success;
+        }
+
+        void clear()
+        {
+            this->size_ = 0uz;
+        }
+
+    private:
 
         void swap(dynamic_buffer& that) noexcept
         {
-            std::swap(this->data_, that.data_);
-            std::swap(this->size_, that.size_);
+            std::swap(this->data_    , that.data_);
+            std::swap(this->size_    , that.size_);
+            std::swap(this->capacity_, that.capacity_);
         }
 
-        Element* data_ = nullptr;
-        std::size_t size_{};
+        Element* data_;
+        std::size_t size_;
+        std::size_t capacity_;
 
     };
 }

@@ -10,7 +10,7 @@ project(Plapper LANGUAGES CXX)
 
 find_package(Catch2 REQUIRED)
 
-add_library(PlapperLib OBJECT)
+add_library(PlapperLib)
 
 target_compile_features(PlapperLib
         PRIVATE   cxx_std_26
@@ -37,6 +37,7 @@ target_sources(PlapperLib
         constant_size_literals.ixx
         type_traits.ixx
         memory_buffer.ixx
+        uninitialized.ixx
 )
 
 target_include_directories(PlapperLib PRIVATE ${Boost_INCLUDE_DIRS})
