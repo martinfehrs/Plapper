@@ -16,7 +16,7 @@ namespace plapper
 {
 
     template <typename Element>
-    class dynamic_buffer
+    class memory_buffer
     {
 
     public:
@@ -33,26 +33,26 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        explicit constexpr dynamic_buffer(uninitialized_t) noexcept
+        explicit constexpr memory_buffer(uninitialized_t) noexcept
         { }
 
-        constexpr dynamic_buffer() noexcept
+        constexpr memory_buffer() noexcept
             : data_{ nullptr }
             , size_{ 0uz }
             , capacity_{ 0uz }
         { }
 
-        dynamic_buffer(const dynamic_buffer& that) = delete;
+        memory_buffer(const memory_buffer& that) = delete;
 
-        constexpr dynamic_buffer(dynamic_buffer&& that) noexcept
-            : dynamic_buffer{}
+        constexpr memory_buffer(memory_buffer&& that) noexcept
+            : memory_buffer{}
         {
             this->swap(that);
         }
 
-        static std::expected<dynamic_buffer, error_status> of_capacity(const std::size_t capacity) noexcept
+        static std::expected<memory_buffer, error_status> of_capacity(const std::size_t capacity) noexcept
         {
-            dynamic_buffer instance{ uninitialized };
+            memory_buffer instance{ uninitialized };
 
             instance.data_ = static_cast<Element*>(malloc(capacity * sizeof(Element)));
 
@@ -65,18 +65,18 @@ namespace plapper
             return instance;
         }
 
-        dynamic_buffer& operator=(const dynamic_buffer& that) = delete;
+        memory_buffer& operator=(const memory_buffer& that) = delete;
 
 
 
-        constexpr dynamic_buffer& operator=(dynamic_buffer&& that) noexcept
+        constexpr memory_buffer& operator=(memory_buffer&& that) noexcept
         {
             this->swap(that);
 
             return *this;
         }
 
-        ~dynamic_buffer() noexcept
+        ~memory_buffer() noexcept
         {
             std::free(this->data_);
         }
@@ -116,13 +116,13 @@ namespace plapper
             return const_cast<reference>(std::as_const(*this).data_[pos]);
         }
 
-        [[nodiscard]] bool operator==(const dynamic_buffer& that) const noexcept
+        [[nodiscard]] bool operator==(const memory_buffer& that) const noexcept
         {
             return this->size_ == that.size_
                 && std::memcmp(this->data_, that.data_, this->size_) == 0;
         }
 
-        [[nodiscard]] bool operator!=(const dynamic_buffer& that) const noexcept
+        [[nodiscard]] bool operator!=(const memory_buffer& that) const noexcept
         {
             return !(*this == that);
         }
@@ -204,7 +204,7 @@ namespace plapper
 
     private:
 
-        void swap(dynamic_buffer& that) noexcept
+        void swap(memory_buffer& that) noexcept
         {
             std::swap(this->data_    , that.data_);
             std::swap(this->size_    , that.size_);

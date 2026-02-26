@@ -53,7 +53,7 @@ namespace plapper
         using key_type = std::string;
         using mapped_type = execution_token_t;
         using value_type = entry;
-        using buffer_type = dynamic_buffer<byte_t>;
+        using buffer_type = memory_buffer<byte_t>;
 
         dictionary() = default;
 

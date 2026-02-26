@@ -355,7 +355,7 @@ namespace plapper
         using pointer = DefaultValue*;
         using const_pointer = const DefaultValue*;
         using const_iterator = const DefaultValue*;
-        using buffer_type = dynamic_buffer<DefaultValue>;
+        using buffer_type = memory_buffer<DefaultValue>;
 
         stack(const stack&) = delete;
         stack(stack&& that) noexcept = default;
