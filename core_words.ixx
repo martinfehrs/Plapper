@@ -18,8 +18,8 @@ namespace plapper
 
     export error_status store(environment& env, void*) noexcept
     {
-        return env.dstack.select(value_of<int_t*>, value).and_then(
-            [&env](const auto a_addr, const auto x)
+        return env.dstack.select(value, value_of<int_t*>).and_then(
+            [&env](const auto x, const auto a_addr)
             {
                 *a_addr = x;
                 env.dstack.pop_n_unchecked(2);

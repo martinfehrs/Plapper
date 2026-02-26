@@ -12,7 +12,7 @@ namespace rng = std::ranges;
 
 static environment test_env()
 {
-    auto dict = dictionary::of_size(65536);
+    auto dict = dictionary::of_capacity(65536);
     auto dstack = data_stack::of_capacity(64);
     auto rstack = return_stack::of_capacity(64);
 

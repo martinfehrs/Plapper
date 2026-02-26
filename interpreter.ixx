@@ -23,7 +23,7 @@ namespace plapper
 
         static std::expected<interpreter, error_status> from_settings(const settings& settings) noexcept
         {
-            auto dict = plapper::dictionary::of_size(65536);
+            auto dict = plapper::dictionary::of_capacity(65536);
 
             if (!dict)
                 return std::unexpected(dict.error());

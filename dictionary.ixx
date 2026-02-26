@@ -15,6 +15,7 @@ export module plapper:dictionary;
 import :error;
 import :core_types;
 import :core_constants;
+import :memory_buffer;
 
 namespace rng = std::ranges;
 
@@ -52,12 +53,18 @@ namespace plapper
         using key_type = std::string;
         using mapped_type = execution_token_t;
         using value_type = entry;
+        using buffer_type = dynamic_buffer<byte_t>;
 
         dictionary() = default;
 
-        ~dictionary() noexcept
+        static std::expected<dictionary, error_status> of_capacity(const std::size_t capacity) noexcept
         {
-            std::free(this->data_);
+            auto buffer = buffer_type::of_capacity(capacity);
+
+            if (!buffer)
+                return std::unexpected(buffer.error());
+
+            return dictionary{ std::move(*buffer) };
         }
 
         dictionary(const dictionary&) = delete;
@@ -76,50 +83,20 @@ namespace plapper
             return *this;
         }
 
-        static std::expected<dictionary, error_status> of_size(std::size_t byte_capacity) noexcept
-        {
-            dictionary dict;
-
-            auto stat = dict.reserve(byte_capacity);
-
-            if (stat != error_status::success)
-                return std::unexpected(stat);
-
-            return dict;
-        }
-
-        error_status reserve(std::size_t new_byte_capacity) noexcept
-        {
-            const auto new_data = static_cast<byte_t*>(std::realloc(this->data_, new_byte_capacity));
-
-            if (!new_data)
-                return error_status::out_of_memory;
-
-            this->data_ = new_data;
-            this->mem_size_ = new_byte_capacity;
-            this->here_ = this->data_;
-
-            return error_status::success;
-        }
-
         [[nodiscard]] auto* here(this auto& self) noexcept
         {
-            return self.here_;
+            return self.buffer_.end();
         }
 
         template <typename T>
         [[nodiscard]] T* allot(const std::size_t count = 1) noexcept
         {
-            const auto size = count * sizeof(T);
+            const auto size_diff = count * sizeof(T);
 
-            if (this->here_ + size >= this->data_ + this->mem_size_)
+            if (this->buffer_.resize(this->buffer_.size() + size_diff) != error_status::success)
                 return nullptr;
 
-            auto old_here = this->here_;
-
-            this->here_ += size;
-
-            return reinterpret_cast<T*>(old_here);
+            return reinterpret_cast<T*>(this->buffer_.end() - size_diff);
         }
 
         template <typename T, typename... Args>
@@ -146,7 +123,7 @@ namespace plapper
 
         [[nodiscard]] entry* create(key_type name, const mapped_type execution_token, const bool immediate) noexcept
         {
-            entry* mem = this->allot<entry>();
+            auto* mem = this->allot<entry>();
 
             if (!mem)
                 return nullptr;
@@ -206,7 +183,7 @@ namespace plapper
             return this->load(rng::begin(module), rng::end(module));
         }
 
-        [[nodiscard]] entry* find(const std::string_view word) noexcept
+        [[nodiscard]] entry* find(const std::string_view word) const noexcept
         {
             entry* current = this->top();
 
@@ -218,19 +195,19 @@ namespace plapper
 
     private:
 
+        explicit dictionary(buffer_type&& buffer) noexcept
+            : buffer_{ std::move(buffer) }
+        { }
+
         void swap(dictionary& that) noexcept
         {
             using std::swap;
 
-            swap(this->mem_size_, that.mem_size_);
-            swap(this->data_, that.data_);
-            swap(this->here_, that.here_);
+            swap(this->buffer_, that.buffer_);
             swap(this->top_, that.top_);
         }
 
-        std::size_t mem_size_ = 0;
-        byte_t* data_ = nullptr;
-        byte_t* here_ = nullptr;
+        buffer_type buffer_;
         entry* top_ = nullptr;
 
     };
