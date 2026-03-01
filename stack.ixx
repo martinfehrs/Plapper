@@ -172,7 +172,7 @@ namespace plapper
         template <std::size_t pos>
         [[nodiscard]] auto& at() const noexcept requires(pos < sizeof...(Elements))
         {
-            return *reinterpret_cast<Elements...[pos]*>(this->first_param_addr + pos);
+            return *reinterpret_cast<nth_type_t<pos, Elements...>*>(this->first_param_addr + pos);
         }
 
         [[nodiscard]] error_status error() const noexcept
@@ -189,7 +189,7 @@ namespace plapper
         template<typename Func> requires (!has_range) && std::same_as<std::invoke_result_t<Func, Elements&...>, void>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
-            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 func_(this->at<indices>()...);
             };
@@ -206,7 +206,7 @@ namespace plapper
             requires has_range && std::same_as<std::invoke_result_t<Func, std::span<RangeElement>, Elements&...>, void>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
-            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 func_(
                     std::span<RangeElement>{
@@ -228,7 +228,7 @@ namespace plapper
             requires (!has_range) && std::same_as<std::invoke_result_t<Func, Elements&...>, error_status>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
-            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 return func_(this->at<indices>()...);
             };
@@ -249,7 +249,7 @@ namespace plapper
                   && std::same_as<std::invoke_result_t<Func, std::span<RangeElement>, Elements&...>, error_status>
         [[nodiscard]] auto and_then(Func func) const noexcept
         {
-            static const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
+            const auto impl = [this]<std::size_t... indices>(Func func_, std::index_sequence<indices...>)
             {
                 return func_(
                     std::span<RangeElement>{
