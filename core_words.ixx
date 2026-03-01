@@ -56,7 +56,7 @@ namespace plapper
         return env.dstack.select(value_of<int_t*>, value).and_then(
             [&env](const auto a_addr, const auto n)
             {
-                *a_addr + n;
+                *a_addr += n;
                 env.dstack.pop_n_unchecked(2);
             }
         );
@@ -146,8 +146,8 @@ namespace plapper
         return env.dstack.select(value_of<int_t*>, 2_cuz * value).and_then(
             [&env](const auto a_addr, const auto x1, const auto x2)
             {
-                a_addr[0] == x2;
-                a_addr[1] == x1;
+                a_addr[0] = x2;
+                a_addr[1] = x1;
                 env.dstack.pop_n_unchecked(3);
             }
         );
