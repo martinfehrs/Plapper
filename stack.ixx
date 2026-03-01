@@ -362,7 +362,6 @@ namespace plapper
         stack& operator=(const stack&) = delete;
         stack& operator=(stack&& that) noexcept = default;
 
-
         [[nodiscard]] static std::expected<stack, error_status> of_capacity(const std::size_t capacity) noexcept
         {
             auto buffer = buffer_type::of_capacity(capacity);
@@ -580,13 +579,6 @@ namespace plapper
         void push_impl(std::index_sequence<indices...>, Values... values) noexcept
         {
             ((this->buffer_[this->buffer_.size() - sizeof...(values) + indices] = values), ...);
-        }
-
-        void swap(stack& that) noexcept
-        {
-            using std::swap;
-
-            swap(this->buffer_, that.buffer_);
         }
 
         buffer_type buffer_;
