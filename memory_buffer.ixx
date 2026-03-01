@@ -33,10 +33,10 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        explicit constexpr memory_buffer(uninitialized_t) noexcept
+        explicit memory_buffer(uninitialized_t) noexcept
         { }
 
-        constexpr memory_buffer() noexcept
+        memory_buffer() noexcept
             : data_{ nullptr }
             , size_{ 0uz }
             , capacity_{ 0uz }
@@ -44,7 +44,7 @@ namespace plapper
 
         memory_buffer(const memory_buffer& that) = delete;
 
-        constexpr memory_buffer(memory_buffer&& that) noexcept
+        memory_buffer(memory_buffer&& that) noexcept
             : memory_buffer{}
         {
             this->swap(that);
@@ -69,7 +69,7 @@ namespace plapper
 
 
 
-        constexpr memory_buffer& operator=(memory_buffer&& that) noexcept
+        memory_buffer& operator=(memory_buffer&& that) noexcept
         {
             this->swap(that);
 
@@ -108,7 +108,7 @@ namespace plapper
 
         [[nodiscard]] constexpr const_reference operator[](std::size_t pos) const noexcept
         {
-            return this->data[pos];
+            return this->data_[pos];
         }
 
         [[nodiscard]] constexpr reference operator[](std::size_t pos) noexcept
