@@ -277,6 +277,7 @@ namespace plapper
                 return *this;
 
             func();
+            this->error_ = error_status::success;
 
             return *this;
         }
