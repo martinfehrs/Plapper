@@ -55,7 +55,10 @@ namespace plapper
         using value_type = entry;
         using buffer_type = memory_buffer<byte_t>;
 
-        dictionary() = default;
+        dictionary(const dictionary&) = delete;
+        dictionary(dictionary&& that) noexcept = default;
+        dictionary& operator=(const dictionary&) = delete;
+        dictionary& operator=(dictionary&& that) noexcept = default;
 
         static std::expected<dictionary, error_status> of_capacity(const std::size_t capacity) noexcept
         {
@@ -65,22 +68,6 @@ namespace plapper
                 return std::unexpected(buffer.error());
 
             return dictionary{ std::move(*buffer) };
-        }
-
-        dictionary(const dictionary&) = delete;
-        dictionary& operator=(const dictionary&) = delete;
-
-        dictionary(dictionary&& that) noexcept
-            : dictionary{}
-        {
-            this->swap(that);
-        }
-
-        dictionary& operator=(dictionary&& that) noexcept
-        {
-            this->swap(that);
-
-            return *this;
         }
 
         [[nodiscard]] auto* here(this auto& self) noexcept
@@ -198,14 +185,6 @@ namespace plapper
         explicit dictionary(buffer_type&& buffer) noexcept
             : buffer_{ std::move(buffer) }
         { }
-
-        void swap(dictionary& that) noexcept
-        {
-            using std::swap;
-
-            swap(this->buffer_, that.buffer_);
-            swap(this->top_, that.top_);
-        }
 
         buffer_type buffer_;
         entry* top_ = nullptr;
