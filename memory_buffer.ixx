@@ -190,12 +190,10 @@ namespace plapper
             return std::make_reverse_iterator(this->begin());
         }
 
-        error_status resize(std::size_t size) noexcept
+        error_status resize(const std::size_t size) noexcept
         {
             if (size > this->capacity_)
                 return error_status::out_of_memory;
-
-            this->size_ = size;
 
             return error_status::success;
         }

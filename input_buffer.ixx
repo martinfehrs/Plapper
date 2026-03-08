@@ -79,9 +79,8 @@ namespace plapper
 
             auto c = std::getc(file);
 
-            while (c != '\n' && c != EOF && this->buffer.size() < this->buffer.capacity())
+            while (c != '\n' && c != EOF && this->buffer.resize(this->buffer.size() + 1) == error_status::success)
             {
-                std::ignore = this->buffer.resize(this->buffer.size() + 1);
                 this->buffer[this->buffer.size() - 1] = static_cast<char>(c);
                 c = std::getc(file);
             }
