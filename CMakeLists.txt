@@ -37,7 +37,6 @@ target_sources(PlapperLib
         constant_size_literals.ixx
         type_traits.ixx
         memory_buffer.ixx
-        uninitialized.ixx
 )
 
 target_include_directories(PlapperLib PRIVATE ${Boost_INCLUDE_DIRS})

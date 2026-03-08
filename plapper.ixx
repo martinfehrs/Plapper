@@ -17,4 +17,3 @@ export import :interpreter;
 export import :settings;
 export import :constant_size_literals;
 export import :type_traits;
-export import :uninitialized;
