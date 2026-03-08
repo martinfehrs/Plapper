@@ -43,14 +43,17 @@ namespace plapper
             if (!tib)
                 return std::unexpected(tib.error());
 
-            core_words_t core_words{ *dict };
+            auto core_words = core_words_t::with_dict(*dict);
 
-            if (auto stat = dict->load(core_words); stat != error_status::success)
+            if (!core_words)
+                return std::unexpected(core_words.error());
+
+            if (auto stat = dict->load(*core_words); stat != error_status::success)
                 return std::unexpected(stat);
 
             if ((settings.additional_modules & modules::core_extension) == modules::core_extension)
             {
-                core_extension_words_t core_extension_words{ core_words };
+                core_extension_words_t core_extension_words{ *core_words };
 
                 if (auto stat = dict->load(core_extension_words); stat != error_status::success)
                     return std::unexpected(stat);

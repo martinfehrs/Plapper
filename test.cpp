@@ -24,8 +24,10 @@ static environment test_env()
 
     environment env{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
 
-    core_words_t core_words{ env.dict };
-    REQUIRE(env.dict.load(core_words) == error_status::success);
+    auto core_words = core_words_t::with_dict(env.dict);
+
+    REQUIRE(core_words);
+    REQUIRE(env.dict.load(*core_words) == error_status::success);
 
     return env;
 }

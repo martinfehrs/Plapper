@@ -76,29 +76,29 @@ namespace plapper
         }
 
         template <typename T>
-        [[nodiscard]] T* allot(const std::size_t count = 1) noexcept
+        [[nodiscard]] std::expected<T*, error_status> allot(const std::size_t count = 1) noexcept
         {
             const auto size_diff = count * sizeof(T);
 
             if (this->buffer_.resize(this->buffer_.size() + size_diff) != error_status::success)
-                return nullptr;
+                return std::unexpected(error_status::out_of_memory);
 
             return reinterpret_cast<T*>(this->buffer_.end() - size_diff);
         }
 
         template <typename T, typename... Args>
-        [[nodiscard]] T* create(Args&&... args)
+        [[nodiscard]] std::expected<T*, error_status> create(Args&&... args) noexcept
         {
             auto mem = this->allot<T>();
 
             if (!mem)
-                return nullptr;
+                return mem;
 
-            return new(mem) T{ std::forward<Args>(args)... };
+            return new(*mem) T{ std::forward<Args>(args)... };
         }
 
         template <typename Value>
-        Value* append(Value value)
+        std::expected<Value*, error_status> append(Value value) noexcept
         {
             return this->create<Value>(value);
         }
@@ -108,27 +108,33 @@ namespace plapper
             return this->top_;
         }
 
-        [[nodiscard]] entry* create(key_type name, const mapped_type execution_token, const bool immediate) noexcept
+        [[nodiscard]] std::expected<entry*, error_status> create(
+            key_type name, const mapped_type execution_token, const bool immediate
+        ) noexcept
         {
-            auto* mem = this->allot<entry>();
+            auto mem = this->allot<entry>();
 
             if (!mem)
-                return nullptr;
+                return std::unexpected(mem.error());
 
-            this->top_ = new(mem) entry{ std::move(name), immediate, this->top_, execution_token };
+            this->top_ = new(*mem) entry{ std::move(name), immediate, this->top_, execution_token };
 
             return mem;
         }
 
-        [[nodiscard]] entry* create(key_type name, const mapped_type execution_token) noexcept
+        [[nodiscard]] std::expected<entry*, error_status> create(
+            key_type name, const mapped_type execution_token
+        ) noexcept
         {
             return this->create(std::move(name), execution_token, false);
         }
 
         template <typename Value>
-        [[nodiscard]] entry* create(key_type name, const mapped_type execution_token, Value value) noexcept
+        [[nodiscard]] std::expected<entry*, error_status> create(
+            key_type name, const mapped_type execution_token, Value value
+        ) noexcept
         {
-            entry* entry = this->create(std::move(name), execution_token);
+            auto entry = this->create(std::move(name), execution_token);
 
             if (entry)
                 this->append(value);
@@ -143,22 +149,35 @@ namespace plapper
         {
             for (auto it = begin; it != end; ++it)
             {
-                const auto* entry = this->create(it->word, it->impl, it->immediate);
+                if (
+                    const auto entry = this->create(it->word, it->impl, it->immediate);
+                    !entry
+                )
+                    return entry.error();
 
-                if (!entry)
-                    return error_status::out_of_memory;
+                if (std::holds_alternative<int_t>(it->data))
+                {
+                    if (auto value = this->append(std::get<int_t>(it->data)); !value)
+                        return value.error();
+                }
 
-                if (std::holds_alternative<int_t>(it->data) && !this->append(std::get<int_t>(it->data)))
-                    return error_status::out_of_memory;
+                if (std::holds_alternative<uint_t>(it->data))
+                {
+                    if (auto value = this->append(std::get<uint_t>(it->data)); !value)
+                        return value.error();
+                }
 
-                if (std::holds_alternative<uint_t>(it->data) && !this->append(std::get<uint_t>(it->data)))
-                    return error_status::out_of_memory;
+                if (std::holds_alternative<int_t*>(it->data))
+                {
+                    if (auto value = this->append(std::get<int_t*>(it->data)); !value)
+                        return value.error();
+                }
 
-                if (std::holds_alternative<int_t*>(it->data) && !this->append(std::get<int_t*>(it->data)))
-                    return error_status::out_of_memory;
-
-                if (std::holds_alternative<uint_t*>(it->data) && !this->append(std::get<uint_t*>(it->data)))
-                    return error_status::out_of_memory;
+                if (std::holds_alternative<uint_t*>(it->data))
+                {
+                    if (auto value = this->append(std::get<uint_t*>(it->data)); !value)
+                        return value.error();
+                }
             }
 
             return error_status::success;

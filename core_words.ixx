@@ -2,6 +2,7 @@ module;
 
 #include <algorithm>
 #include <cstring>
+#include <expected>
 #include <format>
 
 export module plapper:core_words;
@@ -333,8 +334,8 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                if (const auto* mem = env.dict.allot<byte_t>(n); !mem)
-                    return error_status::out_of_memory;
+                if (const auto mem = env.dict.allot<byte_t>(n); !mem)
+                    return mem.error();
 
                 env.dstack.pop_unchecked();
 
@@ -862,10 +863,15 @@ namespace plapper
 
     public:
 
-        explicit core_words_t(dictionary& dict) noexcept
-            : base_addr_{ dict.append<int_t>(10) }
-            , entries{ this->create_entries(this->base_addr_) }
-        { }
+        static std::expected<core_words_t, error_status> with_dict(dictionary& dict)
+        {
+            auto base_addr = dict.append<int_t>(10);
+
+            if (!base_addr)
+                return std::unexpected(base_addr.error());
+
+            return core_words_t{ *base_addr };
+        }
 
         [[nodiscard]] explicit operator bool() const noexcept
         {
@@ -886,6 +892,13 @@ namespace plapper
         {
             return this->entries.end();
         }
+
+    private:
+
+        explicit core_words_t(int_t* base_addr) noexcept
+            : base_addr_{ base_addr }
+            , entries{ this->create_entries(this->base_addr_) }
+        { }
 
     };
 
