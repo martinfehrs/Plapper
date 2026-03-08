@@ -26,12 +26,11 @@ namespace plapper
 
     export struct environment
     {
-        environment() = default;
-
-        environment(dictionary dict, data_stack dstack, return_stack rstack) noexcept
+        environment(dictionary dict, data_stack dstack, return_stack rstack, input_buffer tib) noexcept
             : dict(std::move(dict))
             , dstack(std::move(dstack))
             , rstack(std::move(rstack))
+            , tib(std::move(tib))
         { }
 
         dictionary dict;

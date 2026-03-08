@@ -38,6 +38,11 @@ namespace plapper
             if (!rstack)
                 return std::unexpected(rstack.error());
 
+            auto tib = plapper::input_buffer::of_capacity(64);
+
+            if (!tib)
+                return std::unexpected(tib.error());
+
             core_words_t core_words{ *dict };
 
             if (auto stat = dict->load(core_words); stat != error_status::success)
@@ -57,14 +62,15 @@ namespace plapper
                     return std::unexpected(stat);
             }
 
-            return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack) };
+            return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
         }
 
         int run(const int argc, const char** argv)
         {
-            this->tib.reset(argc, argv);
+            if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
+                std::println("{}", error_message_for(stat));
 
-            int pos = 0;
+            auto pos = 0;
 
             while (this->running)
             {
@@ -90,7 +96,13 @@ namespace plapper
                             this->tob.write("\n");
 
                         std::print("> ");
-                        this->tib.reset(std::cin);
+
+                        if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
+                        {
+                            std::println("{}", error_message_for(stat));
+                            continue;
+                        }
+
                         word = this->tib.read_word();
                         pos = 0;
                     }
@@ -166,8 +178,8 @@ namespace plapper
 
     private:
 
-        explicit interpreter(dictionary dict, data_stack dstack, return_stack rstack) noexcept
-            : environment{ std::move(dict), std::move(dstack), std::move(rstack) }
+        explicit interpreter(dictionary dict, data_stack dstack, return_stack rstack, input_buffer tib) noexcept
+            : environment{ std::move(dict), std::move(dstack), std::move(rstack), std::move(tib) }
         { }
 
         static error_status literal_(environment& env, void*) noexcept

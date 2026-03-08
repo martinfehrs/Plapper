@@ -15,12 +15,14 @@ static environment test_env()
     auto dict = dictionary::of_capacity(65536);
     auto dstack = data_stack::of_capacity(64);
     auto rstack = return_stack::of_capacity(64);
+    auto tib = input_buffer::of_capacity(64);
 
     REQUIRE(dict);
     REQUIRE(dstack);
     REQUIRE(rstack);
+    REQUIRE(tib);
 
-    environment env{ std::move(*dict), std::move(*dstack), std::move(*rstack) };
+    environment env{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
 
     core_words_t core_words{ env.dict };
     REQUIRE(env.dict.load(core_words) == error_status::success);

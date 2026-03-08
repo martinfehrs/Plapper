@@ -26,7 +26,7 @@ namespace plapper
         "out of character range",
         "division by zero",
         "stack_overflow",
-        "out_of_memory",
+        "out of memory",
         "out of words",
         "unknown word"
     };
