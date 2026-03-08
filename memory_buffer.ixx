@@ -39,9 +39,6 @@ namespace plapper
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        explicit memory_buffer(uninitialized_t) noexcept
-        { }
-
         memory_buffer() noexcept
             : data_{ nullptr }
             , size_{ 0uz }
@@ -209,6 +206,9 @@ namespace plapper
         }
 
     private:
+
+        explicit memory_buffer(uninitialized_t) noexcept
+        { }
 
         void swap(memory_buffer& that) noexcept
         {
