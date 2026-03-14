@@ -90,7 +90,12 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                env.odev.write("{}", n);
+                static constexpr auto buffer_size = std::numeric_limits<int_t>::digits10 + 2;
+                static char buffer[buffer_size];
+
+                const auto out = std::format_to(buffer, "{}", n);
+
+                env.odev.write(buffer, out - buffer);
                 env.dstack.pop_unchecked();
             }
         );
@@ -651,7 +656,12 @@ namespace plapper
         return env.dstack.select(value_of<uint_t>).and_then(
             [&env](auto u)
             {
-                env.odev.write("{}", u);
+                static constexpr auto buffer_size = std::numeric_limits<uint_t>::digits10 + 1;
+                static char buffer[buffer_size];
+
+                const auto out = std::format_to(buffer, "{}", u);
+
+                env.odev.write(buffer, out - buffer);
             }
         );
     }
