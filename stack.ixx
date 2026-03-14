@@ -82,18 +82,6 @@ namespace plapper
     };
 
     template <>
-    struct stack_conversion_traits<char>
-    {
-        using source_type = char;
-        using target_type = uint_t;
-
-        [[nodiscard]] static constexpr target_type convert(source_type val) noexcept
-        {
-            return static_cast<unsigned char>(val);
-        }
-    };
-
-    template <>
     struct stack_conversion_traits<int>
     {
         using source_type = int;

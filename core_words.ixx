@@ -90,7 +90,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                env.tob.write(std::format("{}", n));
+                env.odev.write("{}", n);
                 env.dstack.pop_unchecked();
             }
         );
@@ -485,7 +485,7 @@ namespace plapper
                 if (x < 0 || x > 127)
                     return error_status::out_of_character_range;
 
-                env.tob.write(static_cast<char>(x));
+                env.odev.write(static_cast<char>(x));
                 env.dstack.pop_unchecked();
 
                 return error_status::success;
@@ -607,7 +607,7 @@ namespace plapper
     // Verbesserung: Fehlerrückgabewert für write-Methode
     export error_status space(environment& env, void*) noexcept
     {
-        env.tob.write(' ');
+        env.odev.write(' ');
 
         return error_status::success;
     }
@@ -617,7 +617,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                env.tob.write(' ', n);
+                env.odev.write(' ', n);
                 env.dstack.pop_unchecked();
             }
         );
@@ -640,7 +640,7 @@ namespace plapper
         return env.dstack.select(value_of<uint_t>, value_of<const char_t*>).and_then(
             [&env](const auto u, const auto c_addr)
             {
-                env.tob.write({ c_addr, u });
+                env.odev.write(c_addr, u);
                 env.dstack.pop_n_unchecked(2);
             }
         );
@@ -651,7 +651,7 @@ namespace plapper
         return env.dstack.select(value_of<uint_t>).and_then(
             [&env](auto u)
             {
-                env.tob.write(std::format("{}", u));
+                env.odev.write("{}", u);
             }
         );
     }
@@ -694,9 +694,12 @@ namespace plapper
             {
                 const auto word = env.tib.read_until(char_);
 
-                static char_t string_storage[256];
+                if (word.size() > 256)
+                    return error_status::out_of_memory;
 
-                string_storage[0] = word.size();
+                static char_t string_storage[257];
+
+                string_storage[0] = static_cast<char>(word.size());
                 std::memcpy(string_storage + 1, word.data(), word.size());
 
                 return env.dstack.replace<1>(reinterpret_cast<int_t>(string_storage));

@@ -71,7 +71,7 @@ namespace plapper
         int run(const int argc, const char** argv)
         {
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
-                std::println("{}", error_message_for(stat));
+                this->odev.write(error_message_for(stat));
 
             auto pos = 0;
 
@@ -84,7 +84,7 @@ namespace plapper
                     if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
                         stat != plapper::error_status::success)
                     {
-                        std::println("{}", error_message_for(stat));
+                        this->odev.write(error_message_for(stat));
                         this->dstack.clear();
                         this->instruction_ptr = nullptr;
                     }
@@ -95,14 +95,14 @@ namespace plapper
 
                     while (word.empty())
                     {
-                        if (!this->tob.empty())
-                            this->tob.write("\n");
+                        if (this->odev.last_written_char() != '\n')
+                            this->odev.write('\n');
 
                         std::print("> ");
 
                         if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
                         {
-                            std::println("{}", error_message_for(stat));
+                            this->odev.write(error_message_for(stat));
                             continue;
                         }
 
@@ -116,7 +116,7 @@ namespace plapper
                         {
                             if (!this->dict.append(&entry->xt))
                             {
-                                std::println("{}", error_message_for(error_status::out_of_memory));
+                                this->odev.write(error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
                                 continue;
                             }
@@ -126,7 +126,7 @@ namespace plapper
                             stat != error_status::success
                         )
                         {
-                            std::println("{}", error_message_for(stat));
+                            this->odev.write(error_message_for(error_status::out_of_memory));
                             this->dstack.clear();
                         }
                     }
@@ -142,10 +142,10 @@ namespace plapper
                         {
                             this->tib.clear();
 
-                            if (!this->tob.empty())
-                                this->tob.write("\n");
+                            if (this->odev.last_written_char() != u8'\n')
+                                this->odev.write('\n');
 
-                            std::println("unknown word");
+                            this->odev.write("unknown word");
                             this->dstack.clear();
                         }
                         else if (this->state == yes)
@@ -154,20 +154,20 @@ namespace plapper
 
                             if (!this->dict.append(&literal_ptr))
                             {
-                                std::println("{}", error_message_for(error_status::out_of_memory));
+                                this->odev.write(error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
                                 continue;
                             }
 
                             if (!this->dict.append(value))
                             {
-                                std::println("{}", error_message_for(error_status::out_of_memory));
+                                this->odev.write(error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
                             }
                         }
                         else if (const auto stat = this->dstack.push(value); stat != error_status::success)
                         {
-                            std::println("{}", error_message_for(stat));
+                            this->odev.write(error_message_for(stat));
                             this->dstack.clear();
                         }
                     }

@@ -5,7 +5,7 @@ export import :error;
 export import :stack;
 export import :memory_buffer;
 export import :input_buffer;
-export import :output_buffer;
+export import :output_device;
 export import :dictionary;
 export import :core_words;
 export import :core_extension_words;

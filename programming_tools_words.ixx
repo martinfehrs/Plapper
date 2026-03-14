@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <format>
 #include <ranges>
 
@@ -16,17 +17,26 @@ namespace plapper
         return env.dstack.select(range).and_then(
             [&env](const auto xs)
             {
-                env.tob.write("istack:\n");
+                env.odev.write("istack:\n");
 
                 const auto size = rng::size(xs);
 
                 if (size == 0uz)
                     return;
 
-                const auto index_width = rng::size(std::format("{}", size - 1));
+                static constexpr auto max_chars_to_write = std::numeric_limits<std::size_t>::digits10 + 1
+                                                                    + std::numeric_limits<int_t>::digits10 + 1
+                                                                    + std::char_traits<char_t>::length("\t[]: -\n");
+
+                const auto max_index_width = std::formatted_size("{}", size - 1);
+
+                static char_t format_buffer[max_chars_to_write + 1];
 
                 for (const auto[i, x] : xs | rng::views::reverse | rng::views::enumerate)
-                    env.tob.write(std::format("\t[{:{}}]: {: }\n", i, index_width, x));
+                {
+                    auto out = std::format_to(format_buffer, "\t[{:{}}]: {: }\n", i, max_index_width, x);
+                    env.odev.write(format_buffer, out - format_buffer);
+                }
             }
         );
     }
