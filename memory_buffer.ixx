@@ -195,6 +195,8 @@ namespace plapper
             if (size > this->capacity_)
                 return error_status::out_of_memory;
 
+            this->size_ = size;
+
             return error_status::success;
         }
 
