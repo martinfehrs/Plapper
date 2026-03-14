@@ -26,7 +26,7 @@ namespace plapper
 
                 static constexpr auto max_chars_to_write = std::numeric_limits<std::size_t>::digits10 + 1
                                                                     + std::numeric_limits<int_t>::digits10 + 1
-                                                                    + std::char_traits<char_t>::length("\t[]: -\n");
+                                                                    + std::char_traits<char_t>::length(" []: -\n");
 
                 const auto max_index_width = std::formatted_size("{}", size - 1);
 
@@ -34,7 +34,7 @@ namespace plapper
 
                 for (const auto[i, x] : xs | rng::views::reverse | rng::views::enumerate)
                 {
-                    auto out = std::format_to(format_buffer, "\t[{:{}}]: {: }\n", i, max_index_width, x);
+                    auto out = std::format_to(format_buffer, " [{:{}}]: {: }\n", i, max_index_width, x);
                     env.odev.write(format_buffer, out - format_buffer);
                 }
             }
