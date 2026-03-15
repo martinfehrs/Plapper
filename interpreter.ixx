@@ -68,7 +68,7 @@ namespace plapper
             return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
         }
 
-        void interpret_instructions()
+        void interpret_instructions() noexcept
         {
             do
             {
