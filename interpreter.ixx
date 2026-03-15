@@ -103,6 +103,8 @@ namespace plapper
                         if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
                         {
                             this->odev.write(error_message_for(stat));
+                            this->dstack.clear();
+                            this->tib.clear();
                             continue;
                         }
 
@@ -118,6 +120,7 @@ namespace plapper
                             {
                                 this->odev.write(error_message_for(ret.error()));
                                 this->dstack.clear();
+                                this->tib.clear();
                                 continue;
                             }
                         }
@@ -128,6 +131,7 @@ namespace plapper
                         {
                             this->odev.write(error_message_for(stat));
                             this->dstack.clear();
+                            this->tib.clear();
                         }
                     }
                     else
@@ -147,6 +151,7 @@ namespace plapper
 
                             this->odev.write("unknown word");
                             this->dstack.clear();
+                            this->tib.clear();
                         }
                         else if (this->state == yes)
                         {
@@ -163,12 +168,14 @@ namespace plapper
                             {
                                 this->odev.write(error_message_for(error_status::out_of_memory));
                                 this->dstack.clear();
+                                this->tib.clear();
                             }
                         }
                         else if (const auto stat = this->dstack.push(value); stat != error_status::success)
                         {
                             this->odev.write(error_message_for(stat));
                             this->dstack.clear();
+                            this->tib.clear();
                         }
                     }
 
