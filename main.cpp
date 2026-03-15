@@ -28,6 +28,4 @@ int main(const int argc, const char** argv)
         critical_error(interpreter.error());
 
     return interpreter->run(argc, argv);
-
-    return 0;
 }
