@@ -84,6 +84,30 @@ namespace plapper
             while (this->running && this->instruction_ptr);
         }
 
+        [[nodiscard]] std::string_view ask_for_input() noexcept
+        {
+            auto word = this->tib.read_word();
+
+            while (word.empty())
+            {
+                if (auto last_char = this->odev.last_written_char(); last_char && *last_char != '\n')
+                    this->odev.write('\n');
+
+                this->odev.write("> ");
+                this->odev.clear();
+
+                if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
+                {
+                    this->handle_error(stat);
+                    continue;
+                }
+
+                word = this->tib.read_word();
+            }
+
+            return word;
+        }
+
         int run(const int argc, const char** argv) noexcept
         {
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
@@ -97,23 +121,7 @@ namespace plapper
                 }
                 else
                 {
-                    std::string_view word = this->tib.read_word();
-
-                    while (word.empty())
-                    {
-                        if (this->odev.last_written_char() != '\n')
-                            this->odev.write('\n');
-
-                        this->odev.write("> ");
-
-                        if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
-                        {
-                            this->handle_error(stat);
-                            continue;
-                        }
-
-                        word = this->tib.read_word();
-                    }
+                    const auto word = this->ask_for_input();
 
                     if (auto const entry = this->dict.find(word); entry != nullptr)
                     {
@@ -143,11 +151,6 @@ namespace plapper
                             );
                             ec != std::errc{} || ptr != word.end())
                         {
-                            this->tib.clear();
-
-                            if (this->odev.last_written_char() != u8'\n')
-                                this->odev.write('\n');
-
                             this->handle_error(error_status::unknown_word);
                         }
                         else if (this->state == yes)

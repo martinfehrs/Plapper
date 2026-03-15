@@ -46,14 +46,19 @@ namespace plapper
             this->write(text, std::strlen(text));
         }
 
-        [[nodiscard]] char last_written_char() const noexcept
+        [[nodiscard]] std::optional<char> last_written_char() const noexcept
         {
             return this->last_written_char_;
         }
 
+        void clear() noexcept
+        {
+            this->last_written_char_ = std::nullopt;
+        }
+
     private:
 
-        char last_written_char_{};
+        std::optional<char> last_written_char_{};
 
     };
 
