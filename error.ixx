@@ -25,10 +25,11 @@ namespace plapper
         "out of stack range",
         "out of character range",
         "division by zero",
-        "stack_overflow",
+        "stack overflow",
         "out of memory",
         "out of words",
-        "unknown word"
+        "unknown word",
+        "out of range"
     };
 
     export [[nodiscard]] constexpr const char* error_message_for(error_status stat) noexcept
