@@ -82,7 +82,7 @@ namespace plapper
                     this->instruction_ptr++;
 
                     if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
-                        stat != plapper::error_status::success)
+                        stat != error_status::success)
                     {
                         this->handle_error(stat);
                         this->instruction_ptr = nullptr;
