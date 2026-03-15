@@ -97,7 +97,7 @@ namespace plapper
                         if (this->odev.last_written_char() != '\n')
                             this->odev.write('\n');
 
-                        std::print("> ");
+                        this->odev.write("> ");
 
                         if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
                         {
@@ -111,7 +111,7 @@ namespace plapper
 
                     if (auto const entry = this->dict.find(word); entry != nullptr)
                     {
-                        if (this->state == yes && !entry->immediate)
+                        if (this->state == yes  && !entry->immediate)
                         {
                             if (auto ret = this->dict.append(&entry->xt))
                             {
