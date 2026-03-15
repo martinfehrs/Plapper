@@ -89,8 +89,6 @@ namespace plapper
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
                 this->handle_error(stat);
 
-            auto pos = 0;
-
             while (this->running)
             {
                 if (this->instruction_ptr)
@@ -115,7 +113,6 @@ namespace plapper
                         }
 
                         word = this->tib.read_word();
-                        pos = 0;
                     }
 
                     if (auto const entry = this->dict.find(word); entry != nullptr)
@@ -171,8 +168,6 @@ namespace plapper
                             this->handle_error(stat);
                         }
                     }
-
-                    pos++;
                 }
             }
 
