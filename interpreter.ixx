@@ -28,17 +28,17 @@ namespace plapper
             if (!dict)
                 return std::unexpected(dict.error());
 
-            auto dstack = plapper::data_stack::of_capacity(64);
+            auto dstack = data_stack::of_capacity(64);
 
             if (!dstack)
                 return std::unexpected(dstack.error());
 
-            auto rstack = plapper::return_stack::of_capacity(64);
+            auto rstack = return_stack::of_capacity(64);
 
             if (!rstack)
                 return std::unexpected(rstack.error());
 
-            auto tib = plapper::input_buffer::of_capacity(64);
+            auto tib = input_buffer::of_capacity(64);
 
             if (!tib)
                 return std::unexpected(tib.error());
