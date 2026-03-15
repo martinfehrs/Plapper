@@ -71,7 +71,7 @@ namespace plapper
         int run(const int argc, const char** argv)
         {
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
-                this->odev.write(error_message_for(stat));
+                this->handle_error(stat);
 
             auto pos = 0;
 
@@ -84,8 +84,7 @@ namespace plapper
                     if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
                         stat != plapper::error_status::success)
                     {
-                        this->odev.write(error_message_for(stat));
-                        this->dstack.clear();
+                        this->handle_error(stat);
                         this->instruction_ptr = nullptr;
                     }
                 }
@@ -102,9 +101,7 @@ namespace plapper
 
                         if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
                         {
-                            this->odev.write(error_message_for(stat));
-                            this->dstack.clear();
-                            this->tib.clear();
+                            this->handle_error(stat);
                             continue;
                         }
 
@@ -118,9 +115,7 @@ namespace plapper
                         {
                             if (auto ret = this->dict.append(&entry->xt))
                             {
-                                this->odev.write(error_message_for(ret.error()));
-                                this->dstack.clear();
-                                this->tib.clear();
+                                this->handle_error(ret.error());
                                 continue;
                             }
                         }
@@ -129,9 +124,7 @@ namespace plapper
                             stat != error_status::success
                         )
                         {
-                            this->odev.write(error_message_for(stat));
-                            this->dstack.clear();
-                            this->tib.clear();
+                            this->handle_error(stat);
                         }
                     }
                     else
@@ -149,33 +142,24 @@ namespace plapper
                             if (this->odev.last_written_char() != u8'\n')
                                 this->odev.write('\n');
 
-                            this->odev.write("unknown word");
-                            this->dstack.clear();
-                            this->tib.clear();
+                            this->handle_error(error_status::unknown_word);
                         }
                         else if (this->state == yes)
                         {
                             static execution_token_t literal_ptr = literal_;
 
-                            if (!this->dict.append(&literal_ptr))
+                            if (auto ret = this->dict.append(&literal_ptr); !ret)
                             {
-                                this->odev.write(error_message_for(error_status::out_of_memory));
-                                this->dstack.clear();
+                                this->handle_error(ret.error());
                                 continue;
                             }
 
-                            if (!this->dict.append(value))
-                            {
-                                this->odev.write(error_message_for(error_status::out_of_memory));
-                                this->dstack.clear();
-                                this->tib.clear();
-                            }
+                            if (auto ret = this->dict.append(value); !ret)
+                                this->handle_error(ret.error());
                         }
                         else if (const auto stat = this->dstack.push(value); stat != error_status::success)
                         {
-                            this->odev.write(error_message_for(stat));
-                            this->dstack.clear();
-                            this->tib.clear();
+                            this->handle_error(stat);
                         }
                     }
 
@@ -191,6 +175,13 @@ namespace plapper
         explicit interpreter(dictionary dict, data_stack dstack, return_stack rstack, input_buffer tib) noexcept
             : environment{ std::move(dict), std::move(dstack), std::move(rstack), std::move(tib) }
         { }
+
+        void handle_error(const error_status status) noexcept
+        {
+            this->odev.write(error_message_for(status));
+            this->dstack.clear();
+            this->tib.clear();
+        }
 
         static error_status literal_(environment& env, void*) noexcept
         {
