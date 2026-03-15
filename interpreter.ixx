@@ -128,10 +128,7 @@ namespace plapper
                         if (this->state == yes  && !entry->immediate)
                         {
                             if (auto ret = this->dict.append(&entry->xt))
-                            {
                                 this->handle_error(ret.error());
-                                continue;
-                            }
                         }
                         else if (
                             const auto stat = entry->xt(*this, entry->data());
