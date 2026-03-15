@@ -5,31 +5,10 @@ import plapper;
 
 namespace rng = std::ranges;
 
-plapper::error_status literal_(plapper::environment& env, void*) noexcept
-{
-    env.instruction_ptr++;
-
-    if (const auto status = env.dstack.push(reinterpret_cast<plapper::int_t>(*env.instruction_ptr));
-        status != plapper::error_status::success)
-        return status;
-
-    return plapper::error_status::success;
-}
-
 [[noreturn]] void critical_error(const plapper::error_status stat) noexcept
 {
     std::println("{}", plapper::error_message_for(stat));
     std::exit(1);
-}
-
-void load_words(plapper::environment& env, const auto& words)
-{
-    if (const auto err_stat = env.dict.load(words);
-        err_stat != plapper::error_status::success)
-    {
-        critical_error(err_stat);
-        std::exit(1);
-    }
 }
 
 int main(const int argc, const char** argv)
