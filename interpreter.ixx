@@ -68,6 +68,22 @@ namespace plapper
             return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
         }
 
+        void interpret_instructions()
+        {
+            do
+            {
+                this->instruction_ptr++;
+
+                if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
+                    stat != error_status::success)
+                {
+                    this->handle_error(stat);
+                    this->instruction_ptr = nullptr;
+                }
+            }
+            while (this->running && this->instruction_ptr);
+        }
+
         int run(const int argc, const char** argv) noexcept
         {
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
@@ -79,14 +95,7 @@ namespace plapper
             {
                 if (this->instruction_ptr)
                 {
-                    this->instruction_ptr++;
-
-                    if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
-                        stat != error_status::success)
-                    {
-                        this->handle_error(stat);
-                        this->instruction_ptr = nullptr;
-                    }
+                    this->interpret_instructions();
                 }
                 else
                 {
