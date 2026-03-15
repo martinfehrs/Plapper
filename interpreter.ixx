@@ -68,7 +68,7 @@ namespace plapper
             return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
         }
 
-        int run(const int argc, const char** argv)
+        int run(const int argc, const char** argv) noexcept
         {
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
                 this->handle_error(stat);
