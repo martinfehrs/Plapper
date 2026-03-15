@@ -7,7 +7,7 @@ namespace rng = std::ranges;
 
 [[noreturn]] void critical_error(const plapper::error_status stat) noexcept
 {
-    std::println("{}", plapper::error_message_for(stat));
+    std::puts(plapper::error_message_for(stat));
     std::exit(1);
 }
 
