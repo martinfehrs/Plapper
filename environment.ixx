@@ -6,7 +6,7 @@ export module plapper:environment;
 
 import :error;
 import :input_buffer;
-import :output_device;
+import :terminal;
 import :stack;
 import :dictionary;
 import :core_types;
@@ -37,7 +37,7 @@ namespace plapper
         data_stack dstack;
         return_stack rstack;
         input_buffer tib;
-        output_device odev;
+        terminal term;
         bool running = true;
         int_t base = 10;
         flag_t state = no;

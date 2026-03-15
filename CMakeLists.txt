@@ -22,8 +22,8 @@ target_sources(PlapperLib
         plapper.ixx
         stack.ixx
         error.ixx
+        terminal.ixx
         input_buffer.ixx
-        output_device.ixx
         environment.ixx
         dictionary.ixx
         core_words.ixx

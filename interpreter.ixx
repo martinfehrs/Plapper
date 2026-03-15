@@ -90,13 +90,12 @@ namespace plapper
 
             while (word.empty())
             {
-                if (auto last_char = this->odev.last_written_char(); last_char && *last_char != '\n')
-                    this->odev.write('\n');
+                if (auto last_char = this->term.last_written_char(); last_char && *last_char != '\n')
+                    this->term.write('\n');
 
-                this->odev.write("> ");
-                this->odev.clear();
+                this->term.write("> ");
 
-                if (const auto stat = this->tib.refill_from(stdin); stat != error_status::success)
+                if (const auto stat = this->tib.refill_from(this->term); stat != error_status::success)
                 {
                     this->handle_error(stat);
                     continue;
@@ -106,6 +105,20 @@ namespace plapper
             }
 
             return word;
+        }
+
+        [[nodiscard]] static std::optional<int_t> word_as_number(const std::string_view word) noexcept
+        {
+            int_t value;
+
+            const auto[ptr, ec] = std::from_chars(
+                word.begin(), word.end(), value, 10
+            );
+
+            if (ec != std::errc{} || ptr != word.end())
+                return std::nullopt;
+
+            return value;
         }
 
         int run(const int argc, const char** argv) noexcept
@@ -138,35 +151,26 @@ namespace plapper
                             this->handle_error(stat);
                         }
                     }
-                    else
+                    else if (const auto number = this->word_as_number(word); !number)
                     {
-                        int_t value;
+                        this->handle_error(error_status::unknown_word);
+                    }
+                    else if (this->state == yes)
+                    {
+                        static execution_token_t literal_ptr = literal_;
 
-                        if(
-                            const auto[ptr, ec] = std::from_chars(
-                                word.begin(), word.end(), value, 10
-                            );
-                            ec != std::errc{} || ptr != word.end())
+                        if (auto ret = this->dict.append(&literal_ptr); !ret)
                         {
-                            this->handle_error(error_status::unknown_word);
+                            this->handle_error(ret.error());
+                            continue;
                         }
-                        else if (this->state == yes)
-                        {
-                            static execution_token_t literal_ptr = literal_;
 
-                            if (auto ret = this->dict.append(&literal_ptr); !ret)
-                            {
-                                this->handle_error(ret.error());
-                                continue;
-                            }
-
-                            if (auto ret = this->dict.append(value); !ret)
-                                this->handle_error(ret.error());
-                        }
-                        else if (const auto stat = this->dstack.push(value); stat != error_status::success)
-                        {
-                            this->handle_error(stat);
-                        }
+                        if (auto ret = this->dict.append(*number); !ret)
+                            this->handle_error(ret.error());
+                    }
+                    else if (const auto stat = this->dstack.push(*number); stat != error_status::success)
+                    {
+                        this->handle_error(stat);
                     }
                 }
             }
@@ -182,7 +186,7 @@ namespace plapper
 
         void handle_error(const error_status status) noexcept
         {
-            this->odev.write(error_message_for(status));
+            this->term.write(error_message_for(status));
             this->dstack.clear();
             this->tib.clear();
         }

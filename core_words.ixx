@@ -95,7 +95,7 @@ namespace plapper
 
                 const auto out = std::format_to(buffer, "{}", n);
 
-                env.odev.write(buffer, out - buffer);
+                env.term.write(buffer, out - buffer);
                 env.dstack.pop_unchecked();
             }
         );
@@ -490,7 +490,7 @@ namespace plapper
                 if (x < 0 || x > 127)
                     return error_status::out_of_character_range;
 
-                env.odev.write(static_cast<char>(x));
+                env.term.write(static_cast<char>(x));
                 env.dstack.pop_unchecked();
 
                 return error_status::success;
@@ -612,7 +612,7 @@ namespace plapper
     // Verbesserung: Fehlerrückgabewert für write-Methode
     export error_status space(environment& env, void*) noexcept
     {
-        env.odev.write(' ');
+        env.term.write(' ');
 
         return error_status::success;
     }
@@ -622,7 +622,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                env.odev.write(' ', n);
+                env.term.write(' ', n);
                 env.dstack.pop_unchecked();
             }
         );
@@ -645,7 +645,7 @@ namespace plapper
         return env.dstack.select(value_of<uint_t>, value_of<const char_t*>).and_then(
             [&env](const auto u, const auto c_addr)
             {
-                env.odev.write(c_addr, u);
+                env.term.write(c_addr, u);
                 env.dstack.pop_n_unchecked(2);
             }
         );
@@ -661,7 +661,7 @@ namespace plapper
 
                 const auto out = std::format_to(buffer, "{}", u);
 
-                env.odev.write(buffer, out - buffer);
+                env.term.write(buffer, out - buffer);
             }
         );
     }

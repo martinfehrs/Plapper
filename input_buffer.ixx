@@ -9,6 +9,7 @@ module;
 export module plapper:input_buffer;
 
 import :memory_buffer;
+import :terminal;
 
 namespace rng = std::ranges;
 
@@ -73,27 +74,10 @@ namespace plapper
             return this->refill_from({ argv + 1, static_cast<std::size_t>(argc - 1) });
         }
 
-        error_status refill_from(FILE* file) noexcept
+        error_status refill_from(terminal& term) noexcept
         {
             this->clear();
-
-            auto c = std::getc(file);
-
-            while (c != '\n' && c != EOF && this->buffer.resize(this->buffer.size() + 1) == error_status::success)
-            {
-                this->buffer[this->buffer.size() - 1] = static_cast<char>(c);
-                c = std::getc(file);
-            }
-
-            if (c != '\n' && c != EOF)
-            {
-                while (c != '\n' && c != EOF)
-                    c = std::getc(file);
-
-                return error_status::out_of_memory;
-            }
-
-            return error_status::success;
+            return term.read_line(this->buffer);
         }
 
         [[nodiscard]] std::string_view read_until(const char delimiter) noexcept

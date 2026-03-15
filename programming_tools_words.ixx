@@ -17,7 +17,7 @@ namespace plapper
         return env.dstack.select(range).and_then(
             [&env](const auto xs)
             {
-                env.odev.write("istack:\n");
+                env.term.write("istack:\n");
 
                 const auto size = rng::size(xs);
 
@@ -35,7 +35,7 @@ namespace plapper
                 for (const auto[i, x] : xs | rng::views::reverse | rng::views::enumerate)
                 {
                     auto out = std::format_to(format_buffer, " [{:{}}]: {: }\n", i, max_index_width, x);
-                    env.odev.write(format_buffer, out - format_buffer);
+                    env.term.write(format_buffer, out - format_buffer);
                 }
             }
         );
