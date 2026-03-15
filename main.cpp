@@ -22,12 +22,12 @@ int main(const int argc, const char** argv)
         .additional_modules = core_extension | programming_tools
     };
 
-    auto ipred = plapper::interpreter::from_settings(settings);
+    auto interpreter = plapper::interpreter::from_settings(settings);
 
-    if (!ipred)
-        critical_error(ipred.error());
+    if (!interpreter)
+        critical_error(interpreter.error());
 
-    return ipred->run(argc, argv);
+    return interpreter->run(argc, argv);
 
     return 0;
 }
