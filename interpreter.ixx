@@ -114,9 +114,9 @@ namespace plapper
                     {
                         if (this->state == yes && !entry->immediate)
                         {
-                            if (!this->dict.append(&entry->xt))
+                            if (auto ret = this->dict.append(&entry->xt))
                             {
-                                this->odev.write(error_message_for(error_status::out_of_memory));
+                                this->odev.write(error_message_for(ret.error()));
                                 this->dstack.clear();
                                 continue;
                             }
@@ -126,7 +126,7 @@ namespace plapper
                             stat != error_status::success
                         )
                         {
-                            this->odev.write(error_message_for(error_status::out_of_memory));
+                            this->odev.write(error_message_for(stat));
                             this->dstack.clear();
                         }
                     }
