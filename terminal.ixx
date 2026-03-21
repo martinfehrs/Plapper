@@ -3,6 +3,9 @@ module;
 #include <cstdio>
 #include <format>
 #include <cstring>
+Zurücksetzten#include <csignal>
+#include <mutex>
+#include <print>
 
 export module plapper:terminal;
 
@@ -19,10 +22,51 @@ namespace plapper
     inline constexpr std::string_view red{ "\033[31m" };
     inline constexpr std::string_view reset{ "\033[0m" };
 
+    static unsigned int terminal_instance_counter = 0;
+
     export class terminal
     {
 
     public:
+
+        terminal() noexcept
+        {
+            if (terminal_instance_counter == 0)
+            {
+                std::signal(
+                    SIGINT,
+                    [](int)
+                    {
+                        std::fputs(reset.data(), stdout);
+                        exit(0);
+                    }
+                );
+            }
+
+            terminal_instance_counter++;
+        }
+
+        terminal(const terminal& that) noexcept
+            : last_written_char_{ that.last_written_char_ }
+        {
+           terminal_instance_counter++;
+        }
+
+        terminal& operator=(const terminal& that) noexcept
+        {
+            this->last_written_char_ = that.last_written_char_;
+            terminal_instance_counter++;
+
+            return *this;
+        }
+
+        ~terminal()
+        {
+            terminal_instance_counter--;
+
+            if (terminal_instance_counter == 0)
+                std::signal(SIGINT, SIG_DFL);
+        }
 
         error_status read_line(memory_buffer<char_t>& buffer) noexcept
         {
