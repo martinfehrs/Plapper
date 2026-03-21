@@ -93,7 +93,7 @@ namespace plapper
                 if (auto last_char = this->term.last_written_char(); last_char && *last_char != '\n')
                     this->term.write('\n');
 
-                this->term.write("> ");
+                this->term.write(reset, dimmed, "> ");
 
                 if (const auto stat = this->tib.refill_from(this->term); stat != error_status::success)
                 {
@@ -101,6 +101,7 @@ namespace plapper
                     continue;
                 }
 
+                this->term.write(reset);
                 word = this->tib.read_word();
             }
 
@@ -186,7 +187,7 @@ namespace plapper
 
         void handle_error(const error_status status) noexcept
         {
-            this->term.write(error_message_for(status));
+            this->term.write(red, error_message_for(status));
             this->dstack.clear();
             this->tib.clear();
         }

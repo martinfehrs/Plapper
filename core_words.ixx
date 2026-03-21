@@ -95,7 +95,7 @@ namespace plapper
 
                 const auto out = std::format_to(buffer, "{}", n);
 
-                env.term.write(buffer, out - buffer);
+                env.term.write({ buffer, static_cast<std::size_t>(out - buffer) });
                 env.dstack.pop_unchecked();
             }
         );
@@ -622,7 +622,7 @@ namespace plapper
         return env.dstack.select(value).and_then(
             [&env](const auto n)
             {
-                env.term.write(' ', n);
+                env.term.write_n(' ', n);
                 env.dstack.pop_unchecked();
             }
         );
@@ -645,7 +645,7 @@ namespace plapper
         return env.dstack.select(value_of<uint_t>, value_of<const char_t*>).and_then(
             [&env](const auto u, const auto c_addr)
             {
-                env.term.write(c_addr, u);
+                env.term.write({ c_addr, u });
                 env.dstack.pop_n_unchecked(2);
             }
         );
@@ -661,7 +661,7 @@ namespace plapper
 
                 const auto out = std::format_to(buffer, "{}", u);
 
-                env.term.write(buffer, out - buffer);
+                env.term.write({ buffer, static_cast<std::size_t>(out - buffer) });
             }
         );
     }

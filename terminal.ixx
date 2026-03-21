@@ -15,6 +15,10 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
+    inline constexpr std::string_view dimmed{ "\033[2m" };
+    inline constexpr std::string_view red{ "\033[31m" };
+    inline constexpr std::string_view reset{ "\033[0m" };
+
     export class terminal
     {
 
@@ -50,7 +54,7 @@ namespace plapper
             this->last_written_char_ = c;
         }
 
-        void write(const char c, const std::size_t n) noexcept
+        void write_n(const char c, const std::size_t n) noexcept
         {
             for (std::size_t i = 0; i < n; ++i)
                 std::putc(c, stdout);
@@ -58,17 +62,18 @@ namespace plapper
             this->last_written_char_ = c;
         }
 
-        void write(const char* text, const std::size_t length) noexcept
+        void write(const std::string_view text) noexcept
         {
-            for (std::size_t i = 0; i < length; ++i)
+            for (std::size_t i = 0; i < text.length(); ++i)
                 std::fputc(text[i], stdout);
 
-            this->last_written_char_ = text[length - 1];
+            this->last_written_char_ = text.back();
         }
 
-        void write(const char* text) noexcept
+        template <std::convertible_to<std::string_view>... Args>
+        void write(const std::string_view first_text, const auto&... further_texts) noexcept
         {
-            this->write(text, std::strlen(text));
+            (this->write(first_text), ..., this->write(std::string_view{ further_texts }));
         }
 
         [[nodiscard]] std::optional<char> last_written_char() const noexcept

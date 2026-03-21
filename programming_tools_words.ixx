@@ -35,7 +35,7 @@ namespace plapper
                 for (const auto[i, x] : xs | rng::views::reverse | rng::views::enumerate)
                 {
                     auto out = std::format_to(format_buffer, " [{:{}}]: {: }\n", i, max_index_width, x);
-                    env.term.write(format_buffer, out - format_buffer);
+                    env.term.write({ format_buffer, static_cast<std::size_t>(out - format_buffer) });
                 }
             }
         );
