@@ -21,9 +21,10 @@ namespace plapper
     constexpr std::string_view red{ "\033[31m" };
     constexpr std::string_view reset{ "\033[0m" };
 
-    static unsigned int terminal_instance_counter = 0;
+    static auto terminal_instance_counter = 0U;
     static std::optional<char> last_written_char_ = std::nullopt;
     static std::mutex terminal_mutex;
+    static auto previous_signal_handler = SIG_DFL;
 
     [[nodiscard]] static bool is_invisible(const std::string_view text) noexcept
     {
@@ -41,12 +42,12 @@ namespace plapper
 
             if (terminal_instance_counter == 0)
             {
-                std::signal(
+                previous_signal_handler = std::signal(
                     SIGINT,
-                    [](int)
+                    [](const int signal)
                     {
                         std::fputs(reset.data(), stdout);
-                        exit(0);
+                        previous_signal_handler(signal);
                     }
                 );
             }
@@ -77,7 +78,7 @@ namespace plapper
             terminal_instance_counter--;
 
             if (terminal_instance_counter == 0)
-                std::signal(SIGINT, SIG_DFL);
+                std::signal(SIGINT, previous_signal_handler);
         }
 
         static error_status read_line(memory_buffer<char_t>& buffer) noexcept
