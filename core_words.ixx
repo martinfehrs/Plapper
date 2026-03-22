@@ -508,6 +508,23 @@ namespace plapper
         return env.dstack.select(value).and_then([](auto& x){ x = ~x; });
     }
 
+    export error_status key(environment& env, void*) noexcept
+    {
+
+        std::expected<char_t, error_status> c;
+
+        do
+        {
+            c = env.term.read_char();
+
+            if (!c)
+                return c.error();
+        }
+        while (!std::isprint(*c));
+
+        return env.dstack.push(*c);
+    }
+
     export error_status l_shift(environment& env, void*) noexcept
     {
         return env.dstack.select(value, value_of<uint_t>).and_then(
@@ -609,7 +626,6 @@ namespace plapper
         return env.dstack.push(0);
     }
 
-    // Verbesserung: Fehlerrückgabewert für write-Methode
     export error_status space(environment& env, void*) noexcept
     {
         env.term.write(' ');
@@ -820,7 +836,7 @@ namespace plapper
                 //{ "IMMEDIATE"   , &immediate           , false },
                 { "INVERT"      , &invert              , false },
                 //{ "J"           , &j                   , false },
-                //{ "KEY"         , &k                   , false },
+                { "KEY"         , &key                 , false },
                 //{ "LEAVE"       , &leave               , false },
                 //{ "LITERAL"     , &literal             , false },
                 //{ "LOOP"        , &loop                , false },

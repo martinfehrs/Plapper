@@ -1,10 +1,12 @@
 module;
 
 #include <cstdio>
+#include <expected>
 #include <format>
 #include <cstring>
 #include <csignal>
 #include <mutex>
+#include <termios.h>
 
 export module plapper:terminal;
 
@@ -79,6 +81,31 @@ namespace plapper
 
             if (terminal_instance_counter == 0)
                 std::signal(SIGINT, previous_signal_handler);
+        }
+
+        [[nodiscard]] static std::expected<char_t, error_status> read_char() noexcept
+        {
+            std::lock_guard guard{ terminal_mutex };
+
+            termios saved_state{};
+
+            tcgetattr(STDIN_FILENO, &saved_state);
+
+            termios new_state = saved_state;
+
+            new_state.c_lflag &= ~(ECHO | ICANON);
+            new_state.c_cc[VMIN] = 1;
+
+            tcsetattr(STDIN_FILENO, TCSANOW, &new_state);
+
+            const auto c = std::getchar();
+
+            if (c == EOF)
+                return std::unexpected(error_status::input_error);
+
+            tcsetattr(STDIN_FILENO, TCSANOW, &saved_state);
+
+            return static_cast<char_t>(c);
         }
 
         static error_status read_line(memory_buffer<char_t>& buffer) noexcept

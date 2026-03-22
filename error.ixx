@@ -18,7 +18,8 @@ namespace plapper
         out_of_memory,
         out_of_words,
         unknown_word,
-        out_of_range
+        out_of_range,
+        input_error,
     };
 
     constexpr std::array error_messages {
@@ -29,7 +30,8 @@ namespace plapper
         "out of memory",
         "out of words",
         "unknown word",
-        "out of range"
+        "out of range",
+        "input error",
     };
 
     export [[nodiscard]] constexpr const char* error_message_for(error_status stat) noexcept
