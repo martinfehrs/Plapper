@@ -38,6 +38,20 @@ namespace plapper
         );
     }
 
+    export error_status times_divide_mod(environment& env, void*) noexcept
+    {
+        return env.dstack.select(3_cuz * value).and_then(
+            [&env](const dint_t n1, const dint_t n2, const dint_t n3)
+            {
+                const dint_t intermediate_product = n1 * n2;
+                const auto quotient = intermediate_product / n3;
+                const auto reminder = intermediate_product % n3;
+
+                return env.dstack.replace<3>(static_cast<int_t>(quotient), static_cast<int_t>(reminder));
+            }
+        );
+    }
+
     export error_status times(environment& env, void*) noexcept
     {
         return env.dstack.select(2_cuz * value).and_then(
@@ -757,7 +771,7 @@ namespace plapper
                 //{ "(",           , &paren              , true  },
                 { "*"            , &times              , false },
                 { "*/"           , &times_divide       , false },
-                //{ "*/MOD"        , &times_divide_mod   , false },
+                { "*/MOD"        , &times_divide_mod   , false },
                 { "+"            , &plus               , false },
                 { "+!"           , &plus_store         , false },
                 //{ "+LOOP"        , &plus_loop          , false },
