@@ -23,22 +23,22 @@ namespace plapper
 
         static std::expected<interpreter, error_status> from_settings(const settings& settings) noexcept
         {
-            auto dict = plapper::dictionary::of_capacity(65536);
+            auto dict = plapper::dictionary::of_capacity(settings.dict_capacity);
 
             if (!dict)
                 return std::unexpected(dict.error());
 
-            auto dstack = data_stack::of_capacity(64);
+            auto dstack = data_stack::of_capacity(settings.dstack_capacity);
 
             if (!dstack)
                 return std::unexpected(dstack.error());
 
-            auto rstack = return_stack::of_capacity(64);
+            auto rstack = return_stack::of_capacity(settings.rstack_capacity);
 
             if (!rstack)
                 return std::unexpected(rstack.error());
 
-            auto tib = input_buffer::of_capacity(64);
+            auto tib = input_buffer::of_capacity(settings.tib_capacity);
 
             if (!tib)
                 return std::unexpected(tib.error());

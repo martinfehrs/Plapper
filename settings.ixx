@@ -29,6 +29,7 @@ namespace plapper
         std::size_t dict_capacity;
         std::size_t dstack_capacity;
         std::size_t rstack_capacity;
+        std::size_t tib_capacity;
         modules additional_modules;
     };
 

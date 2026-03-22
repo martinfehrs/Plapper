@@ -21,6 +21,7 @@ int main(const int argc, const char** argv)
         .dict_capacity = 65_KiB,
         .dstack_capacity = 64_cells,
         .rstack_capacity = 64_cells,
+        .tib_capacity = 64_chars,
         .additional_modules = core_extension | programming_tools
     };
 
