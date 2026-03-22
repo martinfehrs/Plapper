@@ -4,15 +4,91 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <expected>
+#include <limits>
 #include <utility>
 #include <iterator>
 
 export module plapper:memory_buffer;
 
 import :error;
+import :core_constants;
 
 namespace plapper
 {
+
+    inline namespace literals
+    {
+
+        consteval void check_max_value(const unsigned long long val)
+        {
+            if constexpr (std::numeric_limits<unsigned long long>::max() > std::numeric_limits<std::size_t>::max())
+            {
+                if (val > std::numeric_limits<std::size_t>::max())
+                    throw std::out_of_range{ "Storage size value out of range" };
+            }
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_B(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return val;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_kB(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * 1'000;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_KiB(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * 1'024;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_MB(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * 1'000'000;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_MiB(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * 1'048'576;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_chars(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * char_size;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_cells(const unsigned long long val)
+        {
+            check_max_value(val);
+
+            return static_cast<std::size_t>(val) * cell_size;
+        }
+
+        export [[nodiscard]] consteval std::size_t operator""_dcells(const unsigned long long val)
+        {
+            if constexpr (std::numeric_limits<unsigned long long>::max() > std::numeric_limits<std::size_t>::max())
+            {
+                if (val > std::numeric_limits<std::size_t>::max())
+                    throw std::out_of_range{ "Storage size value out of range" };
+            }
+
+            return static_cast<std::size_t>(val) * dcell_size;
+        }
+
+    }
 
     struct uninitialized_t
     {

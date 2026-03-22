@@ -4,6 +4,8 @@
 import plapper;
 
 namespace rng = std::ranges;
+using namespace plapper::literals;
+
 
 [[noreturn]] void critical_error(const plapper::error_status stat) noexcept
 {
@@ -16,9 +18,9 @@ int main(const int argc, const char** argv)
     using enum plapper::modules;
 
     static constexpr plapper::settings settings{
-        .dict_capacity = 65'536,
-        .dstack_capacity = 64,
-        .rstack_capacity = 64,
+        .dict_capacity = 65_KiB,
+        .dstack_capacity = 64_cells,
+        .rstack_capacity = 64_cells,
         .additional_modules = core_extension | programming_tools
     };
 

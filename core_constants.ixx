@@ -11,6 +11,7 @@ namespace plapper
 
     export constexpr uint_t char_size = sizeof(char_t);
     export constexpr uint_t cell_size = sizeof(int_t);
+    export constexpr uint_t dcell_size = sizeof(dint_t);
 
     export constexpr int_t min_int{ std::numeric_limits<int_t>::min() };
     export constexpr int_t max_int{ std::numeric_limits<int_t>::max() };
