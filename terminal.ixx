@@ -25,6 +25,11 @@ namespace plapper
     static std::optional<char> last_written_char_ = std::nullopt;
     static std::mutex terminal_mutex;
 
+    [[nodiscard]] static bool is_invisible(const std::string_view text) noexcept
+    {
+        return text.starts_with("\033[") && text.ends_with('m');
+    }
+
     export class terminal
     {
 
@@ -65,7 +70,7 @@ namespace plapper
             return *this;
         }
 
-        ~terminal()
+        ~terminal() noexcept
         {
             std::lock_guard guard{ terminal_mutex };
 
@@ -79,9 +84,9 @@ namespace plapper
         {
             std::lock_guard guard{ terminal_mutex };
 
-            last_written_char_ = std::nullopt;
-
             auto c = std::getc(stdin);
+
+            last_written_char_ = '\n';
 
             while (c != '\n' && c != EOF && buffer.resize(buffer.size() + 1) == error_status::success)
             {
@@ -126,6 +131,9 @@ namespace plapper
             for (std::size_t i = 0; i < text.length(); ++i)
                 std::fputc(text[i], stdout);
 
+            if (is_invisible(text))
+                return;
+
             last_written_char_ = text.back();
         }
 
@@ -141,7 +149,6 @@ namespace plapper
         {
             return last_written_char_;
         }
-
     };
 
 }
