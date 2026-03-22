@@ -3,9 +3,8 @@ module;
 #include <cstdio>
 #include <format>
 #include <cstring>
-Zurücksetzten#include <csignal>
+#include <csignal>
 #include <mutex>
-#include <print>
 
 export module plapper:terminal;
 
@@ -18,11 +17,13 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
-    inline constexpr std::string_view dimmed{ "\033[2m" };
-    inline constexpr std::string_view red{ "\033[31m" };
-    inline constexpr std::string_view reset{ "\033[0m" };
+    constexpr std::string_view dimmed{ "\033[2m" };
+    constexpr std::string_view red{ "\033[31m" };
+    constexpr std::string_view reset{ "\033[0m" };
 
     static unsigned int terminal_instance_counter = 0;
+    static std::optional<char> last_written_char_ = std::nullopt;
+    static std::mutex terminal_mutex;
 
     export class terminal
     {
@@ -31,6 +32,8 @@ namespace plapper
 
         terminal() noexcept
         {
+            std::lock_guard guard{ terminal_mutex };
+
             if (terminal_instance_counter == 0)
             {
                 std::signal(
@@ -46,15 +49,17 @@ namespace plapper
             terminal_instance_counter++;
         }
 
-        terminal(const terminal& that) noexcept
-            : last_written_char_{ that.last_written_char_ }
+        terminal(const terminal&) noexcept
         {
-           terminal_instance_counter++;
+            std::lock_guard guard{ terminal_mutex };
+
+            terminal_instance_counter++;
         }
 
-        terminal& operator=(const terminal& that) noexcept
+        terminal& operator=(const terminal&) noexcept
         {
-            this->last_written_char_ = that.last_written_char_;
+            std::lock_guard guard(terminal_mutex);
+
             terminal_instance_counter++;
 
             return *this;
@@ -62,15 +67,19 @@ namespace plapper
 
         ~terminal()
         {
+            std::lock_guard guard{ terminal_mutex };
+
             terminal_instance_counter--;
 
             if (terminal_instance_counter == 0)
                 std::signal(SIGINT, SIG_DFL);
         }
 
-        error_status read_line(memory_buffer<char_t>& buffer) noexcept
+        static error_status read_line(memory_buffer<char_t>& buffer) noexcept
         {
-            this->last_written_char_ = std::nullopt;
+            std::lock_guard guard{ terminal_mutex };
+
+            last_written_char_ = std::nullopt;
 
             auto c = std::getc(stdin);
 
@@ -91,43 +100,47 @@ namespace plapper
             return error_status::success;
         }
 
-        void write(const char c) noexcept
+        static void write(const char c) noexcept
         {
+            std::lock_guard guard{ terminal_mutex };
+
             std::putc(c, stdout);
 
-            this->last_written_char_ = c;
+            last_written_char_ = c;
         }
 
-        void write_n(const char c, const std::size_t n) noexcept
+        static void write_n(const char c, const std::size_t n) noexcept
         {
+            std::lock_guard guard{ terminal_mutex };
+
             for (std::size_t i = 0; i < n; ++i)
                 std::putc(c, stdout);
 
-            this->last_written_char_ = c;
+            last_written_char_ = c;
         }
 
-        void write(const std::string_view text) noexcept
+        static void write(const std::string_view text) noexcept
         {
+            std::lock_guard guard{ terminal_mutex };
+
             for (std::size_t i = 0; i < text.length(); ++i)
                 std::fputc(text[i], stdout);
 
-            this->last_written_char_ = text.back();
+            last_written_char_ = text.back();
         }
 
         template <std::convertible_to<std::string_view>... Args>
-        void write(const std::string_view first_text, const auto&... further_texts) noexcept
+        static void write(const std::string_view first_text, const Args&... further_texts) noexcept
         {
-            (this->write(first_text), ..., this->write(std::string_view{ further_texts }));
+            std::lock_guard guard{ terminal_mutex };
+
+            (write(first_text), ..., write(std::string_view{ further_texts }));
         }
 
-        [[nodiscard]] std::optional<char> last_written_char() const noexcept
+        [[nodiscard]] static std::optional<char> last_written_char() noexcept
         {
-            return this->last_written_char_;
+            return last_written_char_;
         }
-
-    private:
-
-        std::optional<char> last_written_char_{};
 
     };
 
