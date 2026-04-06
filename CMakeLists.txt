@@ -39,6 +39,8 @@ target_sources(PlapperLib
         memory_buffer.ixx
 )
 
+set_property(TARGET PlapperLib PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
 target_include_directories(PlapperLib PRIVATE ${Boost_INCLUDE_DIRS})
 
 add_executable(Plapper)
@@ -47,6 +49,8 @@ target_sources(Plapper
         PRIVATE
         main.cpp
 )
+
+set_property(TARGET Plapper PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 target_link_libraries(Plapper PlapperLib)
 
