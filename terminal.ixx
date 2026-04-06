@@ -25,7 +25,7 @@ namespace plapper
 
     static auto terminal_instance_counter = 0U;
     static std::optional<char> last_written_char_ = std::nullopt;
-    static std::mutex terminal_mutex;
+    std::mutex terminal_mutex;
     static auto previous_signal_handler = SIG_DFL;
 
     [[nodiscard]] static bool is_invisible(const std::string_view text) noexcept
