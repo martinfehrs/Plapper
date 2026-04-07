@@ -19,6 +19,5 @@ namespace plapper
     export using duint_t = __uint128_t;
 
     export using flag_t = std::uintptr_t;
-    export using execution_token_t = error_status(*)(environment& env, void* data) noexcept;
 
 }

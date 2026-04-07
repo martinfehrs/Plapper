@@ -22,6 +22,16 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
+    class execution_token
+    {
+
+    public:
+
+        [[nodiscard]] virtual error_status operator()(environment&, void* data) const noexcept = 0;
+        virtual ~execution_token() = default;
+
+    };
+
     export struct module_entry;
 
     [[nodiscard]] bool case_insensitive_compare(std::string_view str1, std::string_view str2) noexcept
@@ -42,7 +52,7 @@ namespace plapper
             std::string word;
             bool immediate;
             entry* next;
-            execution_token_t xt;
+            const execution_token* xt;
 
             [[nodiscard]] void* data() noexcept
             {
@@ -51,7 +61,7 @@ namespace plapper
         };
 
         using key_type = std::string;
-        using mapped_type = execution_token_t;
+        using mapped_type = const execution_token*;
         using value_type = entry;
         using buffer_type = memory_buffer<byte_t>;
 
@@ -149,35 +159,19 @@ namespace plapper
         {
             for (auto it = begin; it != end; ++it)
             {
-                if (
-                    const auto entry = this->create(it->word, it->impl, it->immediate);
-                    !entry
-                )
-                    return entry.error();
+                const auto status = std::visit(
+                    [this, it](std::derived_from<execution_token> auto& token)
+                    {
+                        if (const auto entry = this->create(it->word, &token, it->immediate); !entry)
+                            return entry.error();
 
-                if (std::holds_alternative<int_t>(it->data))
-                {
-                    if (auto value = this->append(std::get<int_t>(it->data)); !value)
-                        return value.error();
-                }
+                        return error_status::success;
+                    },
+                    it->token
+                );
 
-                if (std::holds_alternative<uint_t>(it->data))
-                {
-                    if (auto value = this->append(std::get<uint_t>(it->data)); !value)
-                        return value.error();
-                }
-
-                if (std::holds_alternative<int_t*>(it->data))
-                {
-                    if (auto value = this->append(std::get<int_t*>(it->data)); !value)
-                        return value.error();
-                }
-
-                if (std::holds_alternative<uint_t*>(it->data))
-                {
-                    if (auto value = this->append(std::get<uint_t*>(it->data)); !value)
-                        return value.error();
-                }
+                if (status != error_status::success)
+                    return status;
             }
 
             return error_status::success;

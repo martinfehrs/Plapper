@@ -225,27 +225,32 @@ namespace plapper
         );
     }
 
-    error_status colon_rt(environment& env, void* data) noexcept
-    {
-        if (env.instruction_ptr)
-        {
-            if (const auto status = env.rstack.push(env.instruction_ptr); status != error_status::success)
-                return status;
-        }
-
-        env.instruction_ptr = static_cast<execution_token_t**>(data) - 1;
-
-        return error_status::success;
-    }
-
     export error_status colon(environment& env, void*) noexcept
     {
+        struct colon_rt_t final : execution_token
+        {
+            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            {
+                if (env.instruction_ptr)
+                {
+                    if (const auto status = env.rstack.push(env.instruction_ptr); status != error_status::success)
+                        return status;
+                }
+
+                env.instruction_ptr = static_cast<execution_token***>(data) - 1;
+
+                return error_status::success;
+            }
+        };
+
+        static colon_rt_t colon_rt{};
+
         const auto word = env.tib.read_word();
 
         if (word.empty())
             return error_status::out_of_words;
 
-        if (!env.dict.create(static_cast<std::string>(word), colon_rt, false))
+        if (!env.dict.create(static_cast<std::string>(word), &colon_rt, false))
             return error_status::out_of_memory;
 
         env.state = yes;
@@ -253,28 +258,32 @@ namespace plapper
         return error_status::success;
     }
 
-    error_status semicolon_rt(environment& env, void*) noexcept
-    {
-        return env.rstack.select(value)
-            .and_then(
-                [&env](const auto ptr)
-                {
-                    env.instruction_ptr = ptr;
-                    env.rstack.pop_unchecked();
-                }
-            ).or_else(
-                [&env]
-                {
-                    env.instruction_ptr = nullptr;
-                }
-            );
-    };
-
     export error_status semicolon(environment& env, void*) noexcept
     {
+        struct semicolon_rt_t final : execution_token
+        {
+            [[nodiscard]] error_status operator()(environment& env, void*) const noexcept override
+            {
+                return env.rstack.select(value)
+                     .and_then(
+                         [&env](const auto ptr)
+                         {
+                             env.instruction_ptr = ptr;
+                             env.rstack.pop_unchecked();
+                         }
+                     ).or_else(
+                         [&env]
+                         {
+                             env.instruction_ptr = nullptr;
+                         }
+                     );
+            }
+        };
+
         env.state = no;
 
-        static execution_token_t semicolon_rt_ptr = semicolon_rt;
+        static semicolon_rt_t semicolon_rt{};
+        static auto semicolon_rt_ptr = &semicolon_rt;
 
         if (!env.dict.append(&semicolon_rt_ptr))
             return error_status::out_of_memory;
@@ -417,6 +426,16 @@ namespace plapper
 
     export error_status constant_(environment& env, void*) noexcept
     {
+        struct user_constant_t : execution_token
+        {
+            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            {
+                return env.dstack.push(*static_cast<int_t*>(data));
+            }
+        };
+
+        static user_constant_t user_constant;
+
         return env.dstack.select(value).and_then(
             [&env](const auto x)
             {
@@ -427,7 +446,7 @@ namespace plapper
 
                 const auto data = env.dict.create(
                     static_cast<std::string>(word),
-                    constant__,
+                    &user_constant,
                     x
                 );
 
@@ -463,18 +482,28 @@ namespace plapper
 
     export error_status create(environment& env, void*) noexcept
     {
+        struct user_data_t : execution_token
+        {
+            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            {
+                return env.dstack.push(reinterpret_cast<int_t>(data));
+            }
+        };
+
+        static user_data_t user_data;
+
         const auto word = env.tib.read_word();
 
         if (word.empty())
             return error_status::out_of_words;
 
-        if (!env.dict.create(static_cast<std::string>(word), create_rt))
+        if (!env.dict.create(static_cast<std::string>(word), &user_data))
             return error_status::out_of_memory;
 
         return error_status::success;
     }
 
-    export error_status decimal(environment& env, void*) noexcept
+    export error_status decimal(environment& env, int_t*) noexcept
     {
         env.base = 10;
 
@@ -524,7 +553,6 @@ namespace plapper
 
     export error_status key(environment& env, void*) noexcept
     {
-
         std::expected<char_t, error_status> c;
 
         do
@@ -706,19 +734,24 @@ namespace plapper
         );
     }
 
-    error_status variable_(environment& env, void* data) noexcept
+    export error_status variable_(environment& env, void*) noexcept
     {
-        return env.dstack.push(reinterpret_cast<int_t>(data));
-    }
+        struct user_variable_t : execution_token
+        {
+            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            {
+                return env.dstack.push(reinterpret_cast<int_t>(data));
+            }
+        };
 
-    export error_status variable(environment& env, void*) noexcept
-    {
+        static user_variable_t user_variable;
+
         const auto word = env.tib.read_word();
 
         if (word.empty())
             return error_status::out_of_words;
 
-        if (!env.dict.create(static_cast<std::string>(word), variable_))
+        if (!env.dict.create(static_cast<std::string>(word), &user_variable))
             return error_status::out_of_memory;
 
         if (!env.dict.allot<int_t>())
@@ -762,142 +795,142 @@ namespace plapper
 
         static const auto& create_entries(int_t* base_addr) noexcept
         {
-            static const module_entry entries_[]{
-                { "!"            , &store              , false },
-                //{ "#"            , &sharp              , false },
-                //{ "#>"           , &number_sign_greater, false },
-                //{ "#S"           , &sharp_s            , false },
-                //{ "'",           , &tick               , false },
-                //{ "(",           , &paren              , true  },
-                { "*"            , &times              , false },
-                { "*/"           , &times_divide       , false },
-                { "*/MOD"        , &times_divide_mod   , false },
-                { "+"            , &plus               , false },
-                { "+!"           , &plus_store         , false },
-                //{ "+LOOP"        , &plus_loop          , false },
-                { ","            , &comma              , false },
-                { "-"            , &minus              , false },
-                { "."            , &dot                , false },
-                //{ ".\""          , &dot_quote          , false },
-                { "/"            , &divide             , false },
-                { "/MOD"         , &divide_mod         , false },
-                { "0<"           , &zero_less          , false },
-                { "0="           , &zero_equals        , false },
-                { "1+"           , &one_plus           , false },
-                { "1-"           , &one_minus          , false },
-                { "2!"           , &two_store          , false },
-                { "2*"           , &two_star           , false },
-                { "2/"           , &two_slash          , false },
-                { "2@"           , &two_fetch          , false },
-                { "2DUP"         , &two_dupe           , false },
-                { "2DROP"        , &two_drop           , false },
-                { "2OVER"        , &two_over           , false },
-                { "2SWAP"        , &two_swap           , false },
-                { ":"            , &colon              , false },
-                { ";"            , &semicolon          , true  },
-                { "<"            , &less_than          , false },
-                //{ "<#"           , &less_number_sign   , false },
-                { "="            , &equals             , false },
-                { ">"            , &greater_than       , false },
-                //{ ">BODY"        , &to_body            , false },
-                //{ ">IN"          , &to_in              , false },
-                //{ ">NUMBER"      , &to_number          , false },
-                //{ ">R"           , &to_r               , false },
-                { "?DUP"         , &question_dupe      , false                   },
-                { "@"            , &fetch              , false                   },
-                //{ "ABORT"        , &abort              , false                   },
-                //{ "ABORT\""      , &abort_quote        , false                   },
-                { "ABS"          , &abs                , false                   },
-                //{ "ACCEPT"       , &accept             , false                   },
-                //{ "ALIGN"        , &align              , false                   },
-                { "ALIGNED"      , &aligned            , false                   },
-                { "ALLOT"        , &allot              , false                   },
-                { "AND"          , &and_               , false                   },
-                { "BASE"         , &base               , false, base_addr },
-                //{ "BEGIN"        , &begin              , false                   },
-                { "BL"           , &b_l                , false                   },
-                //{ "C!"           , &c_store            , false                   },
-                //{ "C,"           , &c_comma            , false                   },
-                //{ "C@"           , &c_fetch            , false                   },
-                { "CELL+"        , &cell_plus          , false                   },
-                { "CELLS"        , &cells              , false                   },
-                { "CHAR"         , &char_              , false                   },
-                { "CHAR+"        , &char_plus          , false                   },
-                { "CHARS"        , &chars              , false                   },
-                { "CONSTANT"     , &constant_          , false                   },
-                { "COUNT"        , &count              , false                   },
-                { "CR"           , &c_r                , false                   },
-                { "CREATE"       , &create             , false                   },
-                { "DECIMAL"      , &decimal            , false, base_addr },
-                { "DEPTH"        , &depth              , false                   },
-                //{ "DO"           , &do_                , false },
-                //{ "DOES>"        , &does               , false },
-                { "DROP"        , &drop                , false },
-                { "DUP"         , &dupe                , false },
-                //{ "ELSE"          , &else_             , false },
-                { "EMIT"        , &emit                , false },
-                //{ "ENVIRONMENT?", &environment_query   , false },
-                //{ "EVALUATE"    , &evaluate            , false },
-                //{ "EXECUTE"     , &execute             , false },
-                //{ "EXIT"        , &exit                , false },
-                //{ "FILL"        , &fill                , false },
-                //{ "FIND"        , &find                , false },
-                //{ "FM/MOD"      , &f_m_slash_mod       , false },
-                { "HERE"          , &here              , false },
-                //{ "HOLD"        , &hold                , false },
-                //{ "I"           , &i                   , false },
-                //{ "IF"          , &if_                 , false },
-                //{ "IMMEDIATE"   , &immediate           , false },
-                { "INVERT"      , &invert              , false },
-                //{ "J"           , &j                   , false },
-                { "KEY"         , &key                 , false },
-                //{ "LEAVE"       , &leave               , false },
-                //{ "LITERAL"     , &literal             , false },
-                //{ "LOOP"        , &loop                , false },
-                { "LSHIFT"      , &l_shift             , false },
-                { "M*"          , &m_star              , false },
-                { "MAX"         , &max                 , false },
-                { "MIN"         , &min                 , false },
-                { "MOD"         , &mod                 , false },
-                //module_entry{ "MOVE"        , &move                , false },
-                { "NEGATE"      , &negate              , false },
-                { "OR"          , &or_                 , false },
-                { "OVER"        , &over                , false },
-                //{ "POSTPONE"    , &postpone            , false },
-                //{ "QUIT"        , &quit                , false },
-                //{ "R>"          , &r_from              , false },
-                //{ "R@"          , &r_fetch             , false },
-                //{ "RECURSE"     , &recurse             , false },
-                //{ "REPEAT"      , &repeat              , false },
-                { "ROT"         , &rote                , false },
-                { "RSHIFT"      , &r_shift             , false },
-                //{ "S\""         , &s_quote             , false },
-                { "S>D"         , &s_to_d              , false },
-                //{ "SIGN"        , &sign                , false },
-                //{ "SM/REM"      , &s_m_slash_rem       , false },
-                //{ "SOURCE"      , &source              , false },
-                { "SPACE"       , &space               , false },
-                { "SPACES"      , &spaces              , false },
-                { "STATE"       , &state               , false },
-                { "SWAP"        , &swap                , false },
-                //module_entry{ "THEN"       , &then                 , false },
-                { "TYPE"       , &type                 , false },
-                { "U."         , &u_dot                , false },
-                { "U<"         , &u_less_than          , false },
-                //{ "UM*"        , &u_m_star             , false },
-                //{ "UM/MOD"     , &u_m_slash_mod        , false },
-                //{ "UNLOOP"     , &unloop               , false },
-                //{ "UNTIL"      , &until                , false },
-                { "VARIABLE"   , &variable             , false },
-                //{ "WHILE"      , &while_               , false },
-                { "WORD"       , &word                 , false },
-                { "XOR"        , &xor_                 , false },
-                //{ "["          , &left_bracket         , true  },
-                //{ "[']"        , &bracket_tick         , false },
-                //{ "[CHAR]"     , &bracket-char         , false },
-                //{ "]"          , &right_bracket        , false },
-            };
 
+            static const module_entry entries_[]{
+                { "!"            , procedure      { store                   }, false },
+                //{ "#"            , procedure      { /*sharp*/               }, false },
+                //{ "#>"           , procedure      { /*number_sign_greater*/ }, false },
+                //{ "#S"           , procedure      { /*sharp_s*/             }, false },
+                //{ "'"            , procedure      { /*tick*/                }, false },
+                //{ "("            , procedure      { /*paren*/               }, true  },
+                { "*"            , procedure      { times                   }, false },
+                { "*/"           , procedure      { times_divide            }, false },
+                { "*/MOD"        , procedure      { times_divide_mod        }, false },
+                { "+"            , procedure      { plus                    }, false },
+                { "+!"           , procedure      { plus_store              }, false },
+                //{ "+LOOP"        , procedure      { /*plus_loop*/           }, false },
+                { ","            , procedure      { comma                   }, false },
+                { "-"            , procedure      { minus                   }, false },
+                { "."            , procedure      { dot                     }, false },
+                //{ ".\""          , procedure      { /*dot_quote*/           }, false },
+                { "/"            , procedure      { divide                  }, false },
+                { "/MOD"         , procedure      { divide_mod              }, false },
+                { "0<"           , procedure      { zero_less               }, false },
+                { "0="           , procedure      { zero_equals             }, false },
+                { "1+"           , procedure      { one_plus                }, false },
+                { "1-"           , procedure      { one_minus               }, false },
+                { "2!"           , procedure      { two_store               }, false },
+                { "2*"           , procedure      { two_star                }, false },
+                { "2/"           , procedure      { two_slash               }, false },
+                { "2@"           , procedure      { two_fetch               }, false },
+                { "2DUP"         , procedure      { two_dupe                }, false },
+                { "2DROP"        , procedure      { two_drop                }, false },
+                { "2OVER"        , procedure      { two_over                }, false },
+                { "2SWAP"        , procedure      { two_swap                }, false },
+                { ":"            , procedure      { colon                   }, false },
+                { ";"            , procedure      { semicolon               }, true  },
+                { "<"            , procedure      { less_than               }, false },
+                //{ "<#"           , procedure      { /*less_number_sign*/    }, false },
+                { "="            , procedure      { equals                  }, false },
+                { ">"            , procedure      { greater_than            }, false },
+                //{ ">BODY"        , procedure      { /*to_body*/             }, false },
+                //{ ">IN"          , procedure      { /*to_in*/               }, false },
+                //{ ">NUMBER"      , procedure      { /*to_number*/           }, false },
+                //{ ">R"           , procedure      { /*to_r*/                }, false },
+                { "?DUP"         , procedure      { question_dupe           }, false },
+                { "@"            , procedure      { fetch                   }, false },
+                //{ "ABORT"        , procedure      { /*abort_*/              }, false },
+                //{ "ABORT\""      , procedure      { /*abort_quote*/         }, false },
+                { "ABS"          , procedure      { abs                     }, false },
+                //{ "ACCEPT"       , procedure      { /*accept*/              }, false },
+                //{ "ALIGN"        , procedure      { /*align_*/              }, false },
+                { "ALIGNED"      , procedure      { aligned                 }, false },
+                { "ALLOT"        , procedure      { allot                   }, false },
+                { "AND"          , procedure      { and_                    }, false },
+                { "BASE"         , variable{ base_addr               }, false },
+                //{ "BEGIN"        , procedure      { /*begin_*/              }, false },
+                { "BL"           , procedure      { b_l                     }, false },
+                //{ "C!"           , procedure      { /*c_store*/             }, false },
+                //{ "C,"           , procedure      { /*c_comma*/             }, false },
+                //{ "C@"           , procedure      { /*c_fetch*/             }, false },
+                { "CELL+"        , procedure      { cell_plus               }, false },
+                { "CELLS"        , procedure      { cells                   }, false },
+                { "CHAR"         , procedure      { char_                   }, false },
+                { "CHAR+"        , procedure      { char_plus               }, false },
+                { "CHARS"        , procedure      { chars                   }, false },
+                { "CONSTANT"     , procedure      { constant_               }, false },
+                { "COUNT"        , procedure      { count                   }, false },
+                { "CR"           , procedure      { c_r                     }, false },
+                { "CREATE"       , procedure      { create                  }, false },
+                { "DECIMAL"      , closure        { decimal, base_addr      }, false },
+                { "DEPTH"        , procedure      { depth                   }, false },
+                //{ "DO"           , procedure      { /*do_*/                 }, false },
+                //{ "DOES>"        , procedure      { /*does*/                }, false },
+                { "DROP"         , procedure      { drop                    }, false },
+                { "DUP"          , procedure      { dupe                    }, false },
+                //{ "ELSE"         , procedure      { /*else_*/               }, false },
+                { "EMIT"         , procedure      { emit                    }, false },
+                //{ "ENVIRONMENT?" , procedure      { /*environment_query*/   }, false },
+                //{ "EVALUATE"     , procedure      { /*evaluate*/            }, false },
+                //{ "EXECUTE"      , procedure      { /*execute*/             }, false },
+                //{ "EXIT"         , procedure      { /*exit_*/               }, false },
+                //{ "FILL"         , procedure      { /*fill*/                }, false },
+                //{ "FIND"         , procedure      { /*find*/                }, false },
+                //{ "FM/MOD"       , procedure      { /*f_m_slash_mod*/       }, false },
+                { "HERE"         , procedure      { here                    }, false },
+                //{ "HOLD"         , procedure      { /*hold*/                }, false },
+                //{ "I"            , procedure      { /*i*/                   }, false },
+                //{ "IF"           , procedure      { /*if_*/                 }, false },
+                //{ "IMMEDIATE"    , procedure      { /*immediate*/           }, false },
+                { "INVERT"       , procedure      { invert                  }, false },
+                //{ "J"            , procedure      { /*j*/                   }, false },
+                { "KEY"          , procedure      { key                     }, false },
+                //{ "LEAVE"        , procedure      { /*leave*/               }, false },
+                //{ "LITERAL"      , procedure      { /*literal*/             }, false },
+                //{ "LOOP"         , procedure      { /*loop*/                }, false },
+                { "LSHIFT"       , procedure      { l_shift                 }, false },
+                { "M*"           , procedure      { m_star                  }, false },
+                { "MAX"          , procedure      { max                     }, false },
+                { "MIN"          , procedure      { min                     }, false },
+                { "MOD"          , procedure      { mod                     }, false },
+                //{ "MOVE"         , procedure      { /*move*/                }, false },
+                { "NEGATE"       , procedure      { negate                  }, false },
+                { "OR"           , procedure      { or_                     }, false },
+                { "OVER"         , procedure      { over                    }, false },
+                //{ "POSTPONE"     , procedure      { /*postpone*/            }, false },
+                //{ "QUIT"         , procedure      { /*quit*/                }, false },
+                //{ "R>"           , procedure      { /*r_from*/              }, false },
+                //{ "R@"           , procedure      { /*r_fetch*/             }, false },
+                //{ "RECURSE"      , procedure      { /*recurse*/             }, false },
+                //{ "REPEAT"       , procedure      { /*repeat*/              }, false },
+                { "ROT"          , procedure      { rote                    }, false },
+                { "RSHIFT"       , procedure      { r_shift                 }, false },
+                //{ "S\""          , procedure      { /*s_quote*/             }, false },
+                { "S>D"          , procedure      { s_to_d                  }, false },
+                //{ "SIGN"         , procedure      { /*sign*/                }, false },
+                //{ "SM/REM"       , procedure      { /*s_m_slash_rem*/       }, false },
+                //{ "SOURCE"       , procedure      { /*source*/              }, false },
+                { "SPACE"        , procedure      { space                   }, false },
+                { "SPACES"       , procedure      { spaces                  }, false },
+                { "STATE"        , procedure      { state                   }, false },
+                { "SWAP"         , procedure      { swap                    }, false },
+                //{ "THEN"         , procedure      { /*then*/                }, false },
+                { "TYPE"         , procedure      { type                    }, false },
+                { "U."           , procedure      { u_dot                   }, false },
+                { "U<"           , procedure      { u_less_than             }, false },
+                //{ "UM*"          , procedure      { /*u_m_star*/            }, false },
+                //{ "UM/MOD"       , procedure      { /*u_m_slash_mod*/       }, false },
+                //{ "UNLOOP"       , procedure      { /*unloop*/              }, false },
+                //{ "UNTIL"        , procedure      { /*until*/               }, false },
+                { "VARIABLE"     , procedure      { variable_               }, false },
+                //{ "WHILE"        , procedure      { /*while_*/              }, false },
+                { "WORD"         , procedure      { word                    }, false },
+                { "XOR"          , procedure      { xor_                    }, false },
+                //{ "["            , procedure      { /*left_bracket*/        }, true  },
+                //{ "[']"          , procedure      { /*bracket_tick*/        }, false },
+                //{ "[CHAR]"       , procedure      { /*bracket_char*/        }, false },
+                //{ "]"            , procedure      { /*right_bracket*/       }, false },
+            };
             return entries_;
         }
 

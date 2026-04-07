@@ -48,8 +48,8 @@ namespace plapper
     }
 
     export constexpr std::array programming_tool_words{
-        module_entry{ ".S" , &dot_s, false },
-        module_entry{ "BYE", &bye  , false },
+        module_entry{ ".S" , procedure{ dot_s }, false },
+        module_entry{ "BYE", procedure{ bye   }, false },
     };
 
 }

@@ -20,9 +20,9 @@ namespace plapper
         return env.dstack.select(value).and_then([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
     }
 
-    export error_status hex(environment& env, void*) noexcept
+    export error_status hex(environment& env, int_t* base) noexcept
     {
-        env.base = 16;
+        *base = 16;
 
         return error_status::success;
     }
@@ -48,9 +48,9 @@ namespace plapper
         static auto& create_entries(const core_words_t& core_words)
         {
             static const module_entry entries_[]{
-                { "0>"  , &zero_greater , false                                 },
-                { "HEX" , &hex          , false, core_words.base_addr() },
-                { "ROLL", &roll         , false                                 },
+                { "0>"  , procedure{ zero_greater                     }, false  },
+                { "HEX" , closure  { hex, core_words.base_addr() }, false  },
+                { "ROLL", procedure{ roll                             }, false  },
             };
 
             return entries_;

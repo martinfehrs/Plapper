@@ -74,7 +74,7 @@ namespace plapper
             {
                 this->instruction_ptr++;
 
-                if (const auto stat = (**this->instruction_ptr)(*this, *this->instruction_ptr + 1);
+                if (const auto stat = (***this->instruction_ptr)(*this, *this->instruction_ptr + 1);
                     stat != error_status::success)
                 {
                     this->handle_error(stat);
@@ -124,6 +124,20 @@ namespace plapper
 
         int run(const int argc, const char** argv) noexcept
         {
+            struct literal_t : execution_token
+            {
+                [[nodiscard]] error_status operator()(environment& env, void*) const noexcept override
+                {
+                    env.instruction_ptr++;
+
+                    if (const auto status = env.dstack.push(reinterpret_cast<int_t>(*env.instruction_ptr));
+                        status != error_status::success)
+                        return status;
+
+                    return error_status::success;
+                }
+            };
+
             if (const auto stat = this->tib.refill_from(argc, argv); stat != error_status::success)
                 this->handle_error(stat);
 
@@ -145,7 +159,7 @@ namespace plapper
                                 this->handle_error(ret.error());
                         }
                         else if (
-                            const auto stat = entry->xt(*this, entry->data());
+                            const auto stat = (*entry->xt)(*this, entry->data());
                             stat != error_status::success
                         )
                         {
@@ -158,7 +172,8 @@ namespace plapper
                     }
                     else if (this->state == yes)
                     {
-                        static execution_token_t literal_ptr = literal_;
+                        static literal_t literal;
+                        static auto literal_ptr = &literal;
 
                         if (auto ret = this->dict.append(&literal_ptr); !ret)
                         {
@@ -190,17 +205,6 @@ namespace plapper
             this->term.write(red, error_message_for(status));
             this->dstack.clear();
             this->tib.clear();
-        }
-
-        static error_status literal_(environment& env, void*) noexcept
-        {
-            env.instruction_ptr++;
-
-            if (const auto status = env.dstack.push(reinterpret_cast<int_t>(*env.instruction_ptr));
-                status != error_status::success)
-                return status;
-
-            return error_status::success;
         }
 
     };
