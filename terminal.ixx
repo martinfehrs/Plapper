@@ -152,10 +152,21 @@ namespace plapper
             last_written_char_ = c;
         }
 
-        static void write(const std::string_view text) noexcept
+        template <std::convertible_to<std::string_view>... Args>
+        static void write(const std::string_view first_text, const Args&... further_texts) noexcept
         {
-            std::lock_guard guard{ terminal_mutex };
+            write_impl(first_text, further_texts...);
+        }
 
+        [[nodiscard]] static std::optional<char> last_written_char() noexcept
+        {
+            return last_written_char_;
+        }
+
+    private:
+
+        static void write_impl(const std::string_view text) noexcept
+        {
             for (std::size_t i = 0; i < text.length(); ++i)
                 std::fputc(text[i], stdout);
 
@@ -166,17 +177,11 @@ namespace plapper
         }
 
         template <std::convertible_to<std::string_view>... Args>
-        static void write(const std::string_view first_text, const Args&... further_texts) noexcept
+        static void write_impl(const std::string_view first_text, const Args&... further_texts) noexcept
         {
-            std::lock_guard guard{ terminal_mutex };
-
-            (write(first_text), ..., write(std::string_view{ further_texts }));
+            (write_impl(first_text), ..., write_impl(std::string_view{ further_texts }));
         }
 
-        [[nodiscard]] static std::optional<char> last_written_char() noexcept
-        {
-            return last_written_char_;
-        }
     };
 
 }
