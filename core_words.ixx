@@ -416,15 +416,25 @@ namespace plapper
 
     export error_status constant_(environment& env) noexcept
     {
-        struct user_constant_t : execution_token
+        class user_constant_t : public execution_token
         {
+
+        public:
+
+            explicit user_constant_t(const int_t value) noexcept
+                : value{ value }
+            { }
+
             [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
             {
-                return env.dstack.push(*static_cast<int_t*>(data));
+                return env.dstack.push(this->value);
             }
-        };
 
-        static user_constant_t user_constant;
+        private:
+
+            int_t value;
+
+        };
 
         return env.dstack.select(value).and_then(
             [&env](const auto x)
@@ -434,11 +444,12 @@ namespace plapper
                 if (word.empty())
                     return error_status::out_of_words;
 
-                const auto data = env.dict.create(
-                    static_cast<std::string>(word),
-                    &user_constant,
-                    x
-                );
+                const auto exec_token = env.dict.create<user_constant_t>(x);
+
+                if (!exec_token)
+                    return exec_token.error();
+
+                const auto data = env.dict.create(static_cast<std::string>(word), *exec_token);
 
                 if (!data)
                     return error_status::out_of_memory;
@@ -719,14 +730,20 @@ namespace plapper
 
     export error_status variable_(environment& env) noexcept
     {
-        struct user_variable_t : execution_token
+        class user_variable_t : public execution_token
         {
+
+        public:
+
             [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
             {
                 return env.dstack.push(reinterpret_cast<int_t>(&this->value));
             }
 
+        private:
+
             int_t value{};
+
         };
 
         const auto word = env.tib.read_word();
