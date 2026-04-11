@@ -139,19 +139,6 @@ namespace plapper
             return this->create(std::move(name), execution_token, false);
         }
 
-        template <typename Value>
-        [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, mapped_type execution_token, Value value
-        ) noexcept
-        {
-            auto entry = this->create(std::move(name), execution_token);
-
-            if (entry)
-                this->append(value);
-
-            return entry;
-        }
-
         template<
             std::input_iterator I, std::sentinel_for<I> O> requires std::same_as<std::iter_value_t<I>, module_entry
         >

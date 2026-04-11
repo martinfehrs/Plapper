@@ -46,9 +46,9 @@ namespace plapper
         static auto& create_entries(const core_words_t& core_words)
         {
             static module_entry entries_[]{
-                { "0>"  , procedure{ zero_greater                }, false  },
+                { "0>"  , procedure{ zero_greater                   }, false  },
                 { "HEX" , closure  { hex, core_words.base() }, false  },
-                { "ROLL", procedure{ roll                        }, false  },
+                { "ROLL", procedure{ roll                           }, false  },
             };
 
             return entries_;
