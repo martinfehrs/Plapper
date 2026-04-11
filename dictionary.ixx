@@ -119,7 +119,7 @@ namespace plapper
         }
 
         [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, mapped_type execution_token, const bool immediate
+            key_type name, const mapped_type execution_token, const bool immediate
         ) noexcept
         {
             auto mem = this->allot<entry>();
@@ -133,7 +133,7 @@ namespace plapper
         }
 
         [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, mapped_type execution_token
+            key_type name, const mapped_type execution_token
         ) noexcept
         {
             return this->create(std::move(name), execution_token, false);
