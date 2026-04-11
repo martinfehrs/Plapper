@@ -723,21 +723,23 @@ namespace plapper
         {
             [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
             {
-                return env.dstack.push(reinterpret_cast<int_t>(data));
+                return env.dstack.push(reinterpret_cast<int_t>(&this->value));
             }
-        };
 
-        static user_variable_t user_variable;
+            int_t value{};
+        };
 
         const auto word = env.tib.read_word();
 
         if (word.empty())
             return error_status::out_of_words;
 
-        if (!env.dict.create(static_cast<std::string>(word), &user_variable))
-            return error_status::out_of_memory;
+        auto exec_token = env.dict.create<user_variable_t>();
 
-        if (!env.dict.allot<int_t>())
+        if (!exec_token)
+            return exec_token.error();
+
+        if (!env.dict.create(static_cast<std::string>(word), *exec_token))
             return error_status::out_of_memory;
 
         return error_status::success;
