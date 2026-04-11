@@ -63,25 +63,41 @@ namespace plapper
 
     };
 
+    template <typename CallbackType>
     class procedure final : public execution_token
     {
 
     public:
 
-        using callback_type = error_status(*)(environment&, void* data) noexcept;
-
-        explicit constexpr procedure(const callback_type callback) noexcept
+        explicit constexpr procedure(CallbackType* callback) noexcept
             : callback{ callback }
         { }
 
-        [[nodiscard]] inline error_status operator()(environment& env, void* data) const noexcept override
+        [[nodiscard]] inline error_status operator()(
+            environment& env, [[maybe_unused]] void* data
+        ) const noexcept override
         {
-            return this->callback(env, data);
+            if constexpr (std::is_same_v<CallbackType, void(environment&, void*) noexcept>)
+            {
+                return this->callback(env, data), error_status::success;
+            }
+            else if constexpr (std::is_same_v<CallbackType, error_status(environment&) noexcept>)
+            {
+                return this->callback(env);
+            }
+            else if constexpr (std::is_same_v<CallbackType, void(environment&) noexcept>)
+            {
+                return this->callback(env), error_status::success;
+            }
+            else
+            {
+                return this->callback(env, data);
+            }
         }
 
     private:
 
-        callback_type callback;
+        CallbackType* callback;
 
     };
 
@@ -118,7 +134,10 @@ namespace plapper
             variable<uint_t>,
             constant<int_t>,
             constant<uint_t>,
-            procedure,
+            procedure<error_status(environment&, void*) noexcept>,
+            procedure<void(environment&, void*) noexcept>,
+            procedure<error_status(environment&) noexcept>,
+            procedure<void(environment&) noexcept>,
             closure<int_t*>,
             closure<uint_t*>
         > token;

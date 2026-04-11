@@ -15,7 +15,7 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
-    export error_status zero_greater(environment& env, void*) noexcept
+    export error_status zero_greater(environment& env) noexcept
     {
         return env.dstack.select(value).and_then([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
     }
@@ -27,7 +27,7 @@ namespace plapper
         return error_status::success;
     }
 
-    export error_status roll(environment& env, void*) noexcept
+    export error_status roll(environment& env) noexcept
     {
         return env.dstack.select(range, value).and_then(
             [&env](const auto xs, const auto n)
@@ -48,9 +48,9 @@ namespace plapper
         static auto& create_entries(const core_words_t& core_words)
         {
             static const module_entry entries_[]{
-                { "0>"  , procedure{ zero_greater                     }, false  },
+                { "0>"  , procedure{ zero_greater                }, false  },
                 { "HEX" , closure  { hex, core_words.base_addr() }, false  },
-                { "ROLL", procedure{ roll                             }, false  },
+                { "ROLL", procedure{ roll                        }, false  },
             };
 
             return entries_;

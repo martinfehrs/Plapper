@@ -12,7 +12,7 @@ import :core_module;
 namespace plapper
 {
 
-    export [[nodiscard]] error_status dot_s(environment& env, void*) noexcept
+    export [[nodiscard]] error_status dot_s(environment& env) noexcept
     {
         return env.dstack.select(range).and_then(
             [&env](const auto xs)
@@ -41,10 +41,9 @@ namespace plapper
         );
     }
 
-    export [[nodiscard]] error_status bye(environment& env, void*) noexcept
+    export void bye(environment& env) noexcept
     {
         env.running = false;
-        return error_status::success;
     }
 
     export constexpr std::array programming_tool_words{
