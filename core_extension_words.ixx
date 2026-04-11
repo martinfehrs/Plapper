@@ -45,7 +45,7 @@ namespace plapper
 
         static auto& create_entries(const core_words_t& core_words)
         {
-            static const module_entry entries_[]{
+            static module_entry entries_[]{
                 { "0>"  , procedure{ zero_greater                }, false  },
                 { "HEX" , closure  { hex, core_words.base() }, false  },
                 { "ROLL", procedure{ roll                        }, false  },
@@ -54,7 +54,7 @@ namespace plapper
             return entries_;
         }
 
-        std::span<const module_entry> entries;
+        std::span<module_entry> entries;
 
     public:
 

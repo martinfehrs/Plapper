@@ -46,7 +46,7 @@ namespace plapper
         env.running = false;
     }
 
-    export constexpr std::array programming_tool_words{
+    export std::array programming_tool_words{
         module_entry{ ".S" , procedure{ dot_s }, false },
         module_entry{ "BYE", procedure{ bye   }, false },
     };

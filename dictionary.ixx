@@ -27,7 +27,7 @@ namespace plapper
 
     public:
 
-        [[nodiscard]] virtual error_status operator()(environment&, void* data) const noexcept = 0;
+        [[nodiscard]] virtual error_status operator()(environment&, void* data) noexcept = 0;
         virtual ~execution_token() = default;
 
     };
@@ -52,7 +52,7 @@ namespace plapper
             std::string word;
             bool immediate;
             entry* next;
-            const execution_token* xt;
+            execution_token* xt;
 
             [[nodiscard]] void* data() noexcept
             {
@@ -61,7 +61,7 @@ namespace plapper
         };
 
         using key_type = std::string;
-        using mapped_type = const execution_token*;
+        using mapped_type = execution_token*;
         using value_type = entry;
         using buffer_type = memory_buffer<byte_t>;
 
@@ -119,7 +119,7 @@ namespace plapper
         }
 
         [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, const mapped_type execution_token, const bool immediate
+            key_type name, mapped_type execution_token, const bool immediate
         ) noexcept
         {
             auto mem = this->allot<entry>();
@@ -133,7 +133,7 @@ namespace plapper
         }
 
         [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, const mapped_type execution_token
+            key_type name, mapped_type execution_token
         ) noexcept
         {
             return this->create(std::move(name), execution_token, false);
@@ -141,7 +141,7 @@ namespace plapper
 
         template <typename Value>
         [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, const mapped_type execution_token, Value value
+            key_type name, mapped_type execution_token, Value value
         ) noexcept
         {
             auto entry = this->create(std::move(name), execution_token);

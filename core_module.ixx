@@ -25,7 +25,7 @@ namespace plapper
             : value{ value }
         { }
 
-        [[nodiscard]] inline error_status operator()(environment& env, void* data) const noexcept override
+        [[nodiscard]] inline error_status operator()(environment& env, void* data) noexcept override
         {
             return env.dstack.push(this->value);
         }
@@ -52,7 +52,7 @@ namespace plapper
             : variable{ std::addressof(reference) }
         { }
 
-        [[nodiscard]] inline error_status operator()(environment& env, void* data) const noexcept override
+        [[nodiscard]] inline error_status operator()(environment& env, void* data) noexcept override
         {
             return env.dstack.push(reinterpret_cast<int_t>(address));
         }
@@ -73,9 +73,7 @@ namespace plapper
             : callback{ callback }
         { }
 
-        [[nodiscard]] inline error_status operator()(
-            environment& env, [[maybe_unused]] void* data
-        ) const noexcept override
+        [[nodiscard]] inline error_status operator()(environment& env, [[maybe_unused]] void* data) noexcept override
         {
             if constexpr (std::is_same_v<CallbackType, void(environment&) noexcept>)
             {
@@ -117,7 +115,7 @@ namespace plapper
             , data{ std::addressof(data) }
         { }
 
-        [[nodiscard]] inline error_status operator()(environment& env, void*) const noexcept override
+        [[nodiscard]] inline error_status operator()(environment& env, void*) noexcept override
         {
             if constexpr (std::is_same_v<CallbackType, void(DataType&) noexcept>)
             {

@@ -126,7 +126,7 @@ namespace plapper
         {
             struct literal_t : execution_token
             {
-                [[nodiscard]] error_status operator()(environment& env, void*) const noexcept override
+                [[nodiscard]] error_status operator()(environment& env, void*) noexcept override
                 {
                     env.instruction_ptr++;
 
@@ -151,7 +151,7 @@ namespace plapper
                 {
                     const auto word = this->ask_for_input();
 
-                    if (auto const entry = this->dict.find(word); entry != nullptr)
+                    if (auto entry = this->dict.find(word); entry != nullptr)
                     {
                         if (this->state == yes  && !entry->immediate)
                         {

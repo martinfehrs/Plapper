@@ -229,7 +229,7 @@ namespace plapper
     {
         struct colon_rt_t final : execution_token
         {
-            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            [[nodiscard]] error_status operator()(environment& env, void* data) noexcept override
             {
                 if (env.instruction_ptr)
                 {
@@ -262,7 +262,7 @@ namespace plapper
     {
         struct semicolon_rt_t final : execution_token
         {
-            [[nodiscard]] error_status operator()(environment& env, void*) const noexcept override
+            [[nodiscard]] error_status operator()(environment& env, void*) noexcept override
             {
                 return env.rstack.select(value)
                      .and_then(
@@ -425,7 +425,7 @@ namespace plapper
                 : value{ value }
             { }
 
-            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            [[nodiscard]] error_status operator()(environment& env, void* data) noexcept override
             {
                 return env.dstack.push(this->value);
             }
@@ -480,7 +480,7 @@ namespace plapper
     {
         struct user_data_t : execution_token
         {
-            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            [[nodiscard]] error_status operator()(environment& env, void* data) noexcept override
             {
                 return env.dstack.push(reinterpret_cast<int_t>(data));
             }
@@ -735,7 +735,7 @@ namespace plapper
 
         public:
 
-            [[nodiscard]] error_status operator()(environment& env, void* data) const noexcept override
+            [[nodiscard]] error_status operator()(environment& env, void* data) noexcept override
             {
                 return env.dstack.push(reinterpret_cast<int_t>(&this->value));
             }
@@ -795,10 +795,10 @@ namespace plapper
     export class core_words_t
     {
 
-        static const auto& create_entries(int_t& base) noexcept
+        static auto& create_entries(int_t& base) noexcept
         {
 
-            static const module_entry entries_[]{
+            static module_entry entries_[]{
                 { "!"            , procedure      { store                   }, false },
                 //{ "#"            , procedure      { /*sharp*/               }, false },
                 //{ "#>"           , procedure      { /*number_sign_greater*/ }, false },
@@ -937,7 +937,7 @@ namespace plapper
         }
 
         int_t* base_addr_;
-        std::span<const module_entry> entries;
+        std::span<module_entry> entries;
 
     public:
 
