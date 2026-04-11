@@ -15,29 +15,27 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
-    export error_status zero_greater(environment& env) noexcept
+    export error_status zero_greater(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([&env](auto& n){ n = env.dstack[0] > 0 ? yes : no; });
+        return dstack.select(value).and_then([&dstack](auto& n){ n = dstack[0] > 0 ? yes : no; });
     }
 
-    export error_status hex(environment& env, int_t* base) noexcept
+    export void hex(int_t& base) noexcept
     {
-        *base = 16;
-
-        return error_status::success;
+        base = 16;
     }
 
-    export error_status roll(environment& env) noexcept
+    export error_status roll(data_stack& dstack) noexcept
     {
-        return env.dstack.select(range, value).and_then(
-            [&env](const auto xs, const auto n)
+        return dstack.select(range, value).and_then(
+            [&dstack](const auto xs, const auto n)
             {
                 const auto roll_range = xs
                     | rng::views::reverse
                     | rng::views::take(n + 1);
 
                 rng::rotate(roll_range, rng::next(rng::begin(roll_range)));
-                env.dstack.pop_unchecked();
+                dstack.pop_unchecked();
             }
         );
     }
@@ -49,7 +47,7 @@ namespace plapper
         {
             static const module_entry entries_[]{
                 { "0>"  , procedure{ zero_greater                }, false  },
-                { "HEX" , closure  { hex, core_words.base_addr() }, false  },
+                { "HEX" , closure  { hex, core_words.base() }, false  },
                 { "ROLL", procedure{ roll                        }, false  },
             };
 

@@ -17,62 +17,62 @@ namespace rng = std::ranges;
 namespace plapper
 {
 
-    export error_status store(environment& env) noexcept
+    export error_status store(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value, value_of<int_t*>).and_then(
-            [&env](const auto x, const auto a_addr)
+        return dstack.select(value, value_of<int_t*>).and_then(
+            [&dstack](const auto x, const auto a_addr)
             {
                 *a_addr = x;
-                env.dstack.pop_n_unchecked(2);
+                dstack.pop_n_unchecked(2);
             }
         );
     }
 
-    export error_status times_divide(environment& env) noexcept
+    export error_status times_divide(data_stack& dstack) noexcept
     {
-        return env.dstack.select(3_cuz * value).and_then(
-            [&env](const dint_t n1, const dint_t n2, const dint_t n3)
+        return dstack.select(3_cuz * value).and_then(
+            [&dstack](const dint_t n1, const dint_t n2, const dint_t n3)
             {
-                return env.dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
+                return dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
             }
         );
     }
 
-    export error_status times_divide_mod(environment& env) noexcept
+    export error_status times_divide_mod(data_stack& dstack) noexcept
     {
-        return env.dstack.select(3_cuz * value).and_then(
-            [&env](const dint_t n1, const dint_t n2, const dint_t n3)
+        return dstack.select(3_cuz * value).and_then(
+            [&dstack](const dint_t n1, const dint_t n2, const dint_t n3)
             {
                 const dint_t intermediate_product = n1 * n2;
                 const auto quotient = intermediate_product / n3;
                 const auto reminder = intermediate_product % n3;
 
-                return env.dstack.replace<3>(static_cast<int_t>(quotient), static_cast<int_t>(reminder));
+                return dstack.replace<3>(static_cast<int_t>(quotient), static_cast<int_t>(reminder));
             }
         );
     }
 
-    export error_status times(environment& env) noexcept
+    export error_status times(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 * n2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 * n2); }
         );
     }
 
-    export error_status plus(environment& env) noexcept
+    export error_status plus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 + n2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 + n2); }
         );
     }
 
-    export error_status plus_store(environment& env) noexcept
+    export error_status plus_store(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value_of<int_t*>, value).and_then(
-            [&env](const auto a_addr, const auto n)
+        return dstack.select(value_of<int_t*>, value).and_then(
+            [&dstack](const auto a_addr, const auto n)
             {
                 *a_addr += n;
-                env.dstack.pop_n_unchecked(2);
+                dstack.pop_n_unchecked(2);
             }
         );
     }
@@ -92,10 +92,10 @@ namespace plapper
         );
     }
 
-    export error_status minus(environment& env) noexcept
+    export error_status minus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2) { return env.dstack.replace<2>(n1 - n2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 - n2); }
         );
     }
 
@@ -115,112 +115,112 @@ namespace plapper
         );
     }
 
-    export error_status divide(environment& env) noexcept
+    export error_status divide(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
                 return n2 == 0 ? error_status::division_by_zero
-                               : env.dstack.replace<2>(n1 / n2);
+                               : dstack.replace<2>(n1 / n2);
             }
         );
     }
 
-    export error_status divide_mod(environment& env) noexcept
+    export error_status divide_mod(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
                 if (n2 == 0)
                     return error_status::division_by_zero;
 
                 const auto[quot, reminder] = std::div(n1, n2);
 
-                return env.dstack.replace<2>(reminder, quot);
+                return dstack.replace<2>(reminder, quot);
             }
         );
     }
 
-    export error_status zero_less(environment& env) noexcept
+    export error_status zero_less(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& x){ x = x < 0 ? yes : no; });
+        return dstack.select(value).and_then([](auto& x){ x = x < 0 ? yes : no; });
     }
 
-    export error_status zero_equals(environment& env) noexcept
+    export error_status zero_equals(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& x){ x = x == 0 ? yes : no; });
+        return dstack.select(value).and_then([](auto& x){ x = x == 0 ? yes : no; });
     }
 
-    export error_status one_plus(environment& env) noexcept
+    export error_status one_plus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n += 1; });
+        return dstack.select(value).and_then([](auto& n){ n += 1; });
     }
 
-    export error_status one_minus(environment& env) noexcept
+    export error_status one_minus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n -= 1; });
+        return dstack.select(value).and_then([](auto& n){ n -= 1; });
     }
 
-    export error_status two_store(environment& env) noexcept
+    export error_status two_store(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value_of<int_t*>, 2_cuz * value).and_then(
-            [&env](const auto a_addr, const auto x1, const auto x2)
+        return dstack.select(value_of<int_t*>, 2_cuz * value).and_then(
+            [&dstack](const auto a_addr, const auto x1, const auto x2)
             {
                 a_addr[0] = x2;
                 a_addr[1] = x1;
-                env.dstack.pop_n_unchecked(3);
+                dstack.pop_n_unchecked(3);
             }
         );
     }
 
-    export error_status two_star(environment& env) noexcept
+    export error_status two_star(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& x){ x <<= 1; });
+        return dstack.select(value).and_then([](auto& x){ x <<= 1; });
     }
 
-    export error_status two_slash(environment& env) noexcept
+    export error_status two_slash(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& x){ x >>= 1; });
+        return dstack.select(value).and_then([](auto& x){ x >>= 1; });
     }
 
-    export error_status two_fetch(environment& env) noexcept
+    export error_status two_fetch(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value_of<int_t*>).and_then(
-            [&env](const auto a_addr)
+        return dstack.select(value_of<int_t*>).and_then(
+            [&dstack](const auto a_addr)
             {
-                return env.dstack.replace<1>(a_addr[0], a_addr[1]);
+                return dstack.replace<1>(a_addr[0], a_addr[1]);
             }
         );
     }
 
-    export error_status two_drop(environment& env) noexcept
+    export error_status two_drop(data_stack& dstack) noexcept
     {
-        return env.dstack.pop_n(2);
+        return dstack.pop_n(2);
     }
 
-    export error_status two_dupe(environment& env) noexcept
+    export error_status two_dupe(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto x2){ return env.dstack.push(x1, x2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2){ return dstack.push(x1, x2); }
         );
     }
 
-    export error_status two_over(environment& env) noexcept
+    export error_status two_over(data_stack& dstack) noexcept
     {
-        return env.dstack.select(4_cuz * value).and_then(
-            [&env](const auto x1, const auto x2, const auto, const auto)
+        return dstack.select(4_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2, const auto, const auto)
             {
-                return env.dstack.push(x1, x2);
+                return dstack.push(x1, x2);
             }
         );
     }
 
-    export error_status two_swap(environment& env) noexcept
+    export error_status two_swap(data_stack& dstack) noexcept
     {
-        return env.dstack.select(4_cuz * value).and_then(
-            [&env](const auto x1, const auto x2, const auto x3, const auto x4)
+        return dstack.select(4_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2, const auto x3, const auto x4)
             {
-                return env.dstack.replace<4>(x3, x4, x1, x2);
+                return dstack.replace<4>(x3, x4, x1, x2);
             }
         );
     }
@@ -291,58 +291,58 @@ namespace plapper
         return error_status::success;
     }
 
-    export error_status less_than(environment& env) noexcept
+    export error_status less_than(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
-                return env.dstack.replace<2>(n1 < n2 ? yes : no);
+                return dstack.replace<2>(n1 < n2 ? yes : no);
             }
         );
     }
 
-    export error_status equals(environment& env) noexcept
+    export error_status equals(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto x2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2)
             {
-                return env.dstack.replace<2>(x1 == x2 ? yes : no);
+                return dstack.replace<2>(x1 == x2 ? yes : no);
             }
         );
     }
 
-    export error_status greater_than(environment& env) noexcept
+    export error_status greater_than(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
-                return env.dstack.replace<2>(n1 > n2 ? yes : no);
+                return dstack.replace<2>(n1 > n2 ? yes : no);
             }
         );
     }
 
-    export error_status question_dupe(environment& env) noexcept
+    export error_status question_dupe(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](const auto x){ return x ? env.dstack.push(x) : error_status::success; }
+        return dstack.select(value).and_then(
+            [&dstack](const auto x){ return x ? dstack.push(x) : error_status::success; }
         );
     }
 
-    export error_status fetch(environment& env) noexcept
+    export error_status fetch(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value_of<int_t*>).and_then(
-            [&env](const auto a_addr){ return env.dstack.replace<1>(*a_addr); }
+        return dstack.select(value_of<int_t*>).and_then(
+            [&dstack](const auto a_addr){ return dstack.replace<1>(*a_addr); }
         );
     }
 
-    export error_status abs(environment& env) noexcept
+    export error_status abs(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n = std::abs(n); });
+        return dstack.select(value).and_then([](auto& n){ n = std::abs(n); });
     }
 
-    export error_status aligned(environment& env) noexcept
+    export error_status aligned(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then(
+        return dstack.select(value).and_then(
             [](auto& a_addr)
             {
                 auto offset = a_addr % cell_size;
@@ -372,26 +372,26 @@ namespace plapper
         );
     }
 
-    export error_status and_(environment& env) noexcept
+    export error_status and_(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 & x2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2){ return dstack.replace<2>(x1 & x2); }
         );
     }
 
-    export error_status b_l(environment& env) noexcept
+    export error_status b_l(data_stack& dstack) noexcept
     {
-        return env.dstack.push(' ');
+        return dstack.push(' ');
     }
 
-    export error_status cell_plus(environment& env) noexcept
+    export error_status cell_plus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& a_addr){ a_addr += cell_size; });
+        return dstack.select(value).and_then([](auto& a_addr){ a_addr += cell_size; });
     }
 
-    export error_status cells(environment& env) noexcept
+    export error_status cells(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n *= cell_size; });
+        return dstack.select(value).and_then([](auto& n){ n *= cell_size; });
     }
 
     export error_status char_(environment& env) noexcept
@@ -404,17 +404,17 @@ namespace plapper
         return env.dstack.push(word[0]);
     }
 
-    export error_status char_plus(environment& env) noexcept
+    export error_status char_plus(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& c_addr){ c_addr += char_size; });
+        return dstack.select(value).and_then([](auto& c_addr){ c_addr += char_size; });
     }
 
-    export error_status chars(environment& env) noexcept
+    export error_status chars(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n *= char_size; });
+        return dstack.select(value).and_then([](auto& n){ n *= char_size; });
     }
 
-    export error_status constant_(environment& env, void*) noexcept
+    export error_status constant_(environment& env) noexcept
     {
         struct user_constant_t : execution_token
         {
@@ -450,19 +450,19 @@ namespace plapper
         );
     }
 
-    export error_status count(environment& env) noexcept
+    export error_status count(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value_of<const char_t*>).and_then(
-            [&env](const auto c_addr)
+        return dstack.select(value_of<const char_t*>).and_then(
+            [&dstack](const auto c_addr)
             {
-                return env.dstack.replace<1>(reinterpret_cast<int_t>(c_addr + 1), c_addr[0]);
+                return dstack.replace<1>(reinterpret_cast<int_t>(c_addr + 1), c_addr[0]);
             }
         );
     }
 
-    export error_status c_r(environment& env) noexcept
+    export error_status c_r(data_stack& dstack) noexcept
     {
-        return env.dstack.push('\n');
+        return dstack.push('\n');
     }
 
     export error_status create(environment& env) noexcept
@@ -488,26 +488,24 @@ namespace plapper
         return error_status::success;
     }
 
-    export error_status decimal(environment& env, int_t* base) noexcept
+    export void decimal(int_t& base) noexcept
     {
-        *base = 10;
-
-        return error_status::success;
+        base = 10;
     }
 
-    export error_status depth(environment& env) noexcept
+    export error_status depth(data_stack& dstack) noexcept
     {
-        return env.dstack.push(rng::size(env.dstack));
+        return dstack.push(rng::size(dstack));
     }
 
-    export error_status drop(environment& env) noexcept
+    export error_status drop(data_stack& dstack) noexcept
     {
-        return env.dstack.pop();
+        return dstack.pop();
     }
 
-    export error_status dupe(environment& env) noexcept
+    export error_status dupe(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([&env](const auto x){ return env.dstack.push(x); });
+        return dstack.select(value).and_then([&dstack](const auto x){ return dstack.push(x); });
     }
 
     export error_status emit(environment& env) noexcept
@@ -531,9 +529,9 @@ namespace plapper
         return env.dstack.push(reinterpret_cast<int_t>(env.dict.here()));
     }
 
-    export error_status invert(environment& env) noexcept
+    export error_status invert(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& x){ x = ~x; });
+        return dstack.select(value).and_then([](auto& x){ x = ~x; });
     }
 
     export error_status key(environment& env) noexcept
@@ -552,83 +550,83 @@ namespace plapper
         return env.dstack.push(*c);
     }
 
-    export error_status l_shift(environment& env) noexcept
+    export error_status l_shift(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value, value_of<uint_t>).and_then(
-            [&env](auto& x, const auto u)
+        return dstack.select(value, value_of<uint_t>).and_then(
+            [&dstack](auto& x, const auto u)
             {
                 x <<= u;
-                env.dstack.pop_unchecked();
+                dstack.pop_unchecked();
             }
         );
     }
 
     // KORREKTUR: Ergebnis muss eine Vorzeichenbehaftete Ganzzahl doppelter Genauigkeit sein (dint_t)
-    export error_status m_star(environment& env) noexcept
+    export error_status m_star(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const dint_t n1, const dint_t n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const dint_t n1, const dint_t n2)
             {
-                return env.dstack.replace<2>(static_cast<int_t>(n1 * n2));
+                return dstack.replace<2>(static_cast<int_t>(n1 * n2));
             }
         );
     }
 
-    export error_status max(environment& env) noexcept
+    export error_status max(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
-                return env.dstack.replace<2>(std::max(n1, n2));
+                return dstack.replace<2>(std::max(n1, n2));
             }
         );
     }
 
-    export error_status min(environment& env) noexcept
+    export error_status min(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
-                return env.dstack.replace<2>(std::min(n1, n2));
+                return dstack.replace<2>(std::min(n1, n2));
             }
         );
     }
 
-    export error_status mod(environment& env) noexcept
+    export error_status mod(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto n1, const auto n2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto n1, const auto n2)
             {
                 if (n2 == 0)
                     return error_status::division_by_zero;
 
-                return env.dstack.replace<2>(n1 % n2);
+                return dstack.replace<2>(n1 % n2);
             }
         );
     }
 
-    export error_status negate(environment& env) noexcept
+    export error_status negate(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value).and_then([](auto& n){ n = -n; });
+        return dstack.select(value).and_then([](auto& n){ n = -n; });
     }
 
-    export error_status or_(environment& env) noexcept
+    export error_status or_(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto x2){ return env.dstack.replace<2>(x1 | x2); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2){ return dstack.replace<2>(x1 | x2); }
         );
     }
 
-    export error_status over(environment& env) noexcept
+    export error_status over(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto){ return env.dstack.push(x1); }
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto){ return dstack.push(x1); }
         );
     }
 
-    export error_status rote(environment& env) noexcept
+    export error_status rote(data_stack& dstack) noexcept
     {
-        return env.dstack.select(3_cuz * value).and_then(
+        return dstack.select(3_cuz * value).and_then(
             [](auto& x1, auto& x2, auto& x3)
             {
                 std::swap(x1, x2);
@@ -637,20 +635,20 @@ namespace plapper
         );
     }
 
-    export error_status r_shift(environment& env) noexcept
+    export error_status r_shift(data_stack& dstack) noexcept
     {
-        return env.dstack.select(value, value_of<uint_t>).and_then(
-            [&env](auto& x, const auto u)
+        return dstack.select(value, value_of<uint_t>).and_then(
+            [&dstack](auto& x, const auto u)
             {
                 x >>= u;
-                env.dstack.pop_unchecked();
+                dstack.pop_unchecked();
             }
         );
     }
 
-    export error_status s_to_d(environment& env) noexcept
+    export error_status s_to_d(data_stack& dstack) noexcept
     {
-        return env.dstack.push(0);
+        return dstack.push(0);
     }
 
     export error_status space(environment& env) noexcept
@@ -676,9 +674,9 @@ namespace plapper
         return env.dstack.push(reinterpret_cast<int_t>(&env.state));
     }
 
-    export error_status swap(environment& env) noexcept
+    export error_status swap(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
+        return dstack.select(2_cuz * value).and_then(
             [](auto& x1, auto& x2){ std::swap(x1, x2); }
         );
     }
@@ -709,12 +707,12 @@ namespace plapper
         );
     }
 
-    export error_status u_less_than(environment& env) noexcept
+    export error_status u_less_than(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value_of<uint_t>).and_then(
-            [&env](const auto u1, const auto u2)
+        return dstack.select(2_cuz * value_of<uint_t>).and_then(
+            [&dstack](const auto u1, const auto u2)
             {
-                return env.dstack.replace<2>(u1 < u2);
+                return dstack.replace<2>(u1 < u2);
             }
         );
     }
@@ -765,12 +763,12 @@ namespace plapper
         );
     }
 
-    export error_status xor_(environment& env) noexcept
+    export error_status xor_(data_stack& dstack) noexcept
     {
-        return env.dstack.select(2_cuz * value).and_then(
-            [&env](const auto x1, const auto x2)
+        return dstack.select(2_cuz * value).and_then(
+            [&dstack](const auto x1, const auto x2)
             {
-                return env.dstack.replace<2>(x1 ^ x2);
+                return dstack.replace<2>(x1 ^ x2);
             }
         );
     }
@@ -778,7 +776,7 @@ namespace plapper
     export class core_words_t
     {
 
-        static const auto& create_entries(int_t* base_addr) noexcept
+        static const auto& create_entries(int_t& base) noexcept
         {
 
             static const module_entry entries_[]{
@@ -832,7 +830,7 @@ namespace plapper
                 { "ALIGNED"      , procedure      { aligned                 }, false },
                 { "ALLOT"        , procedure      { allot                   }, false },
                 { "AND"          , procedure      { and_                    }, false },
-                { "BASE"         , variable{ base_addr               }, false },
+                { "BASE"         , variable       { base                 }, false },
                 //{ "BEGIN"        , procedure      { /*begin_*/              }, false },
                 { "BL"           , procedure      { b_l                     }, false },
                 //{ "C!"           , procedure      { /*c_store*/             }, false },
@@ -847,7 +845,7 @@ namespace plapper
                 { "COUNT"        , procedure      { count                   }, false },
                 { "CR"           , procedure      { c_r                     }, false },
                 { "CREATE"       , procedure      { create                  }, false },
-                { "DECIMAL"      , closure        { decimal, base_addr      }, false },
+                { "DECIMAL"      , closure        { decimal, base        }, false },
                 { "DEPTH"        , procedure      { depth                   }, false },
                 //{ "DO"           , procedure      { /*do_*/                 }, false },
                 //{ "DOES>"        , procedure      { /*does*/                }, false },
@@ -931,7 +929,7 @@ namespace plapper
             if (!base_addr)
                 return std::unexpected(base_addr.error());
 
-            return core_words_t{ *base_addr };
+            return core_words_t{ **base_addr };
         }
 
         [[nodiscard]] explicit operator bool() const noexcept
@@ -939,9 +937,9 @@ namespace plapper
             return this->base_addr_;
         }
 
-        [[nodiscard]] int_t* base_addr() const noexcept
+        [[nodiscard]] int_t& base() const noexcept
         {
-            return this->base_addr_;
+            return *this->base_addr_;
         }
 
         [[nodiscard]] auto begin() const noexcept
@@ -956,9 +954,9 @@ namespace plapper
 
     private:
 
-        explicit core_words_t(int_t* base_addr) noexcept
-            : base_addr_{ base_addr }
-            , entries{ this->create_entries(this->base_addr_) }
+        explicit core_words_t(int_t& base) noexcept
+            : base_addr_{ std::addressof(base) }
+            , entries{ this->create_entries(base) }
         { }
 
     };

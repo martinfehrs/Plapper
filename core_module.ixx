@@ -77,21 +77,25 @@ namespace plapper
             environment& env, [[maybe_unused]] void* data
         ) const noexcept override
         {
-            if constexpr (std::is_same_v<CallbackType, void(environment&, void*) noexcept>)
+            if constexpr (std::is_same_v<CallbackType, void(environment&) noexcept>)
             {
-                return this->callback(env, data), error_status::success;
+                return this->callback(env), error_status::success;
             }
             else if constexpr (std::is_same_v<CallbackType, error_status(environment&) noexcept>)
             {
                 return this->callback(env);
             }
-            else if constexpr (std::is_same_v<CallbackType, void(environment&) noexcept>)
+            else if constexpr (std::is_same_v<CallbackType, void(data_stack&) noexcept>)
             {
-                return this->callback(env), error_status::success;
+                return this->callback(env.dstack), error_status::success;
+            }
+            else if constexpr (std::is_same_v<CallbackType, error_status(data_stack&) noexcept>)
+            {
+                return this->callback(env.dstack);
             }
             else
             {
-                return this->callback(env, data);
+                return this->callback(env);
             }
         }
 
@@ -101,28 +105,42 @@ namespace plapper
 
     };
 
-    template <typename DataType>
+    template <typename CallbackType, typename DataType>
     class closure final : public execution_token
     {
     public:
 
-        using callback_type = error_status(*)(environment&, DataType data) noexcept;
         using data_type = DataType;
 
-        explicit constexpr closure(const callback_type callback, DataType data) noexcept
+        explicit constexpr closure(CallbackType* callback, DataType& data) noexcept
             : callback{ callback }
-            , data{ data }
+            , data{ std::addressof(data) }
         { }
 
         [[nodiscard]] inline error_status operator()(environment& env, void*) const noexcept override
         {
-            return this->callback(env, this->data);
+            if constexpr (std::is_same_v<CallbackType, void(DataType&) noexcept>)
+            {
+                return this->callback(*this->data), error_status::success;
+            }
+            else if constexpr (std::is_same_v<CallbackType, error_status(DataType&) noexcept>)
+            {
+                return this->callback(*this->data);
+            }
+            else if constexpr (std::is_same_v<CallbackType, void(environment&, DataType&) noexcept>)
+            {
+                return this->callback(env, *this->data), error_status::success;
+            }
+            else
+            {
+                return this->callback(env, *this->data);
+            }
         }
 
     private:
 
-        callback_type callback;
-        DataType data;
+        CallbackType* callback;
+        DataType* data;
 
     };
 
@@ -134,12 +152,18 @@ namespace plapper
             variable<uint_t>,
             constant<int_t>,
             constant<uint_t>,
-            procedure<error_status(environment&, void*) noexcept>,
-            procedure<void(environment&, void*) noexcept>,
             procedure<error_status(environment&) noexcept>,
             procedure<void(environment&) noexcept>,
-            closure<int_t*>,
-            closure<uint_t*>
+            procedure<error_status(data_stack&) noexcept>,
+            procedure<void(data_stack&) noexcept>,
+            closure<void(int_t&) noexcept, int_t>,
+            closure<error_status(int_t&) noexcept, int_t>,
+            closure<void(uint_t&) noexcept, uint_t>,
+            closure<error_status(uint_t&) noexcept, uint_t>,
+            closure<void(environment&, int_t&) noexcept, int_t>,
+            closure<error_status(environment&, int_t&) noexcept, int_t>,
+            closure<void(environment&, uint_t&) noexcept, uint_t>,
+            closure<error_status(environment&, uint_t&) noexcept, uint_t>
         > token;
         bool immediate;
     };
