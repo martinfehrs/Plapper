@@ -228,7 +228,7 @@ namespace plapper
 
     error_status colon(environment& env) noexcept
     {
-        struct user_word_entry final : public user_dictionary_entry
+        struct user_word_entry final : user_dictionary_entry
         {
             using user_dictionary_entry::user_dictionary_entry;
 
