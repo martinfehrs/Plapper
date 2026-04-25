@@ -43,25 +43,20 @@ namespace plapper
             if (!tib)
                 return std::unexpected(tib.error());
 
-            auto core_words = core_words_t::with_dict(*dict);
+            auto core_words_data = load_core_words(*dict);
 
-            if (!core_words)
-                return std::unexpected(core_words.error());
-
-            if (auto stat = dict->load(*core_words); stat != error_status::success)
-                return std::unexpected(stat);
+            if (!core_words_data)
+                return std::unexpected(core_words_data.error());
 
             if ((settings.additional_modules & modules::core_extension) == modules::core_extension)
             {
-                core_extension_words_t core_extension_words{ *core_words };
-
-                if (auto stat = dict->load(core_extension_words); stat != error_status::success)
+                if (auto stat = load_core_extension_words(*dict, *core_words_data); stat != error_status::success)
                     return std::unexpected(stat);
             }
 
             if ((settings.additional_modules & modules::programming_tools) == modules::programming_tools)
             {
-                if (auto stat = dict->load(programming_tool_words); stat != error_status::success)
+                if (auto stat = load_programming_tool_words(*dict); stat != error_status::success)
                     return std::unexpected(stat);
             }
 
@@ -153,13 +148,13 @@ namespace plapper
 
                     if (auto entry = this->dict.find(word); entry != nullptr)
                     {
-                        if (this->state == yes  && !entry->immediate)
+                        if (this->state == yes  && entry->execution_time != execution_time_t::immediate)
                         {
-                            if (auto ret = this->dict.append(&entry->xt))
+                            if (auto ret = this->dict.append(&entry))
                                 this->handle_error(ret.error());
                         }
                         else if (
-                            const auto stat = (*entry->xt)(*this, entry->data());
+                            const auto stat = (*entry)(*this, entry->data());
                             stat != error_status::success
                         )
                         {

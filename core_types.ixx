@@ -17,7 +17,12 @@ namespace plapper
     export using uint_t = std::uintptr_t;
     export using dint_t = __int128_t;
     export using duint_t = __uint128_t;
-
     export using flag_t = std::uintptr_t;
+
+    struct execution_token
+    {
+        [[nodiscard]] virtual error_status operator()(environment&, void* data) noexcept = 0;
+        virtual ~execution_token() = default;
+    };
 
 }

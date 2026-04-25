@@ -7,12 +7,12 @@ module;
 export module plapper:programming_tools_words;
 
 import :environment;
-import :core_module;
+import :core_word_entries;
 
 namespace plapper
 {
 
-    export [[nodiscard]] error_status dot_s(environment& env) noexcept
+    error_status dot_s(environment& env) noexcept
     {
         return env.dstack.select(range).and_then(
             [&env](const auto xs)
@@ -41,14 +41,16 @@ namespace plapper
         );
     }
 
-    export void bye(environment& env) noexcept
+    void bye(environment& env) noexcept
     {
         env.running = false;
     }
 
-    export std::array programming_tool_words{
-        module_entry{ ".S" , procedure{ dot_s }, false },
-        module_entry{ "BYE", procedure{ bye   }, false },
-    };
-
+    error_status load_programming_tool_words(dictionary& dict)
+    {
+        return dict.emplace_entries(
+            template_v<procedure>, ".S" , dot_s,
+            template_v<procedure>, "BYE", bye
+        );
+    }
 }

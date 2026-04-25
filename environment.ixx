@@ -16,14 +16,6 @@ import :settings;
 namespace plapper
 {
 
-    export using data_stack = stack<
-        int_t, uint_t, flag_t,
-        int_t*, uint_t*, flag_t*, char_t*,
-        const int_t*, const uint_t*, const flag_t*, const char_t*
-    >;
-
-    export using return_stack = stack<execution_token***>;
-
     export struct environment
     {
         environment(dictionary dict, data_stack dstack, return_stack rstack, input_buffer tib) noexcept

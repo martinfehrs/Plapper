@@ -31,12 +31,13 @@ target_sources(PlapperLib
         programming_tools_words.ixx
         core_types.ixx
         core_constants.ixx
-        core_module.ixx
+        core_word_entries.ixx
         interpreter.ixx
         settings.ixx
         constant_size_literals.ixx
         type_traits.ixx
         memory_buffer.ixx
+        type_params.ixx
 )
 
 set_property(TARGET PlapperLib PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)

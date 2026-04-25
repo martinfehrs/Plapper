@@ -12,7 +12,6 @@ export import :core_extension_words;
 export import :programming_tools_words;
 export import :core_constants;
 export import :core_types;
-export import :core_module;
 export import :interpreter;
 export import :settings;
 export import :constant_size_literals;

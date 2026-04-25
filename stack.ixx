@@ -14,6 +14,7 @@ import :constant_size_literals;
 import :core_constants;
 import :type_traits;
 import :memory_buffer;
+import :core_types;
 
 namespace rng = std::ranges;
 
@@ -572,5 +573,13 @@ namespace plapper
 
         buffer_type buffer_;
     };
+
+    export using data_stack = stack<
+        int_t, uint_t, flag_t,
+        int_t*, uint_t*, flag_t*, char_t*,
+        const int_t*, const uint_t*, const flag_t*, const char_t*
+    >;
+
+    export using return_stack = stack<execution_token***>;
 
 }

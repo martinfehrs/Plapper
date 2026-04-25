@@ -4,11 +4,8 @@ module;
 #include <expected>
 #include <iterator>
 #include <string_view>
-#include <ranges>
 #include <stack>
-#include <variant>
 #include <print>
-#include <concepts>
 
 export module plapper:dictionary;
 
@@ -16,23 +13,13 @@ import :error;
 import :core_types;
 import :core_constants;
 import :memory_buffer;
+import :stack;
+import :type_params;
 
 namespace rng = std::ranges;
 
 namespace plapper
 {
-
-    class execution_token
-    {
-
-    public:
-
-        [[nodiscard]] virtual error_status operator()(environment&, void* data) noexcept = 0;
-        virtual ~execution_token() = default;
-
-    };
-
-    export struct module_entry;
 
     [[nodiscard]] bool case_insensitive_compare(std::string_view str1, std::string_view str2) noexcept
     {
@@ -42,27 +29,84 @@ namespace plapper
             [](const char c1, const char c2){ return std::tolower(c1) == std::tolower(c2); });
     }
 
+    enum class execution_time_t
+    {
+        immediate,
+        delayed
+    };
+
+    struct dictionary_entry : execution_token
+    {
+
+        explicit dictionary_entry(const execution_time_t execution_time = execution_time_t::delayed) noexcept
+            : execution_time{ execution_time }
+        { }
+
+        [[nodiscard]] inline void* data() noexcept
+        {
+            return reinterpret_cast<byte_t*>(this) + sizeof(dictionary_entry);
+        }
+
+        [[nodiscard]] virtual std::string_view word() const noexcept = 0;
+
+        execution_time_t execution_time;
+        dictionary_entry* next;
+    };
+
+    class core_word_entry : public dictionary_entry
+    {
+
+    public:
+
+        explicit core_word_entry(
+            const std::string_view word, const execution_time_t execution_time = execution_time_t::delayed
+        ) noexcept
+            : dictionary_entry{ execution_time }
+            , word_{ word }
+        { }
+
+        [[nodiscard]] inline std::string_view word() const noexcept final
+        {
+            return this->word_;
+        }
+
+    private:
+
+        std::string_view word_;
+
+    };
+
+    class user_dictionary_entry : public dictionary_entry
+    {
+
+    public:
+
+        user_dictionary_entry(
+            std::string_view word, const execution_time_t execution_time = execution_time_t::delayed
+        ) noexcept
+            : dictionary_entry{ execution_time }
+            , word_{ std::string{ word } }
+        { }
+
+        [[nodiscard]] std::string_view word() const noexcept final
+        {
+            return this->word_;
+        }
+
+    private:
+
+        std::string word_;
+
+    };
+
     export class dictionary
     {
 
     public:
 
-        struct entry
-        {
-            std::string word;
-            bool immediate;
-            entry* next;
-            execution_token* xt;
-
-            [[nodiscard]] void* data() noexcept
-            {
-                return reinterpret_cast<byte_t*>(this) + sizeof(entry);
-            }
-        };
-
         using key_type = std::string;
         using mapped_type = execution_token*;
-        using value_type = entry;
+        using value_type = dictionary_entry;
         using buffer_type = memory_buffer<byte_t>;
 
         dictionary(const dictionary&) = delete;
@@ -113,68 +157,109 @@ namespace plapper
             return this->create<Value>(value);
         }
 
-        [[nodiscard]] entry* top() const noexcept
+        [[nodiscard]] dictionary_entry* top() const noexcept
         {
             return this->top_;
         }
 
-        [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, const mapped_type execution_token, const bool immediate
-        ) noexcept
+        void push_entry(dictionary_entry* entry) noexcept
         {
-            auto mem = this->allot<entry>();
-
-            if (!mem)
-                return std::unexpected(mem.error());
-
-            this->top_ = new(*mem) entry{ std::move(name), immediate, this->top_, execution_token };
-
-            return mem;
+            entry->next = this->top_;
+            this->top_ = entry;
         }
 
-        [[nodiscard]] std::expected<entry*, error_status> create(
-            key_type name, const mapped_type execution_token
-        ) noexcept
+        template <typename Entry, typename... Args>
+        error_status emplace_entry(typename_param<Entry>, const std::string_view word, Args&&... args) noexcept
         {
-            return this->create(std::move(name), execution_token, false);
+            auto new_entry = this->create<Entry>(word, std::forward<Args>(args)...);
+
+            if (!new_entry)
+                return new_entry.error();
+
+            return push_entry(*new_entry), error_status::success;
         }
 
-        template<
-            std::input_iterator I, std::sentinel_for<I> O> requires std::same_as<std::iter_value_t<I>, module_entry
+        template <template <typename...> typename EntryTemplate, typename... ConstructionArgs>
+        error_status emplace_entry(
+            template_param<EntryTemplate>, const std::string_view word, ConstructionArgs&&... construction_args
+        ) noexcept
+        {
+            return this->emplace_entry(
+                typename_v<decltype(EntryTemplate{ word, std::forward<ConstructionArgs>(construction_args)... })>,
+                word,
+                std::forward<ConstructionArgs>(construction_args)...
+            );
+        }
+
+        template <template<typename...> typename Entry, typename ConstructionArg>
+        error_status emplace_entries(
+            template_param<Entry> entry_type, const std::string_view word, ConstructionArg&& construction_arg
+        ) noexcept
+        {
+            return this->emplace_entry(entry_type, word, std::forward<ConstructionArg>(construction_arg));
+        }
+
+        template <
+            template<typename...> typename EntryType,
+            typename ConstructionArg,
+            template <typename...> typename NextEntryType,
+            typename... FurtherArgs
         >
-        error_status load(I begin, O end) noexcept
+        error_status emplace_entries(
+            template_param<EntryType> entry_type,
+            const std::string_view word,
+            ConstructionArg&& construction_arg,
+            template_param<NextEntryType> next_entry_type,
+            FurtherArgs&&... further_args
+        ) noexcept
         {
-            for (auto it = begin; it != end; ++it)
+            if (
+                const auto stat = this->emplace_entries(next_entry_type, std::forward<FurtherArgs>(further_args)...);
+                stat != error_status::success
+            )
             {
-                const auto status = std::visit(
-                    [this, it](std::derived_from<execution_token> auto& token)
-                    {
-                        if (const auto entry = this->create(it->word, &token, it->immediate); !entry)
-                            return entry.error();
-
-                        return error_status::success;
-                    },
-                    it->token
-                );
-
-                if (status != error_status::success)
-                    return status;
+                return stat;
             }
 
-            return error_status::success;
+            return this->emplace_entry(entry_type, word, std::forward<ConstructionArg>(construction_arg));
         }
 
-        template <rng::input_range Range> requires std::same_as<rng::range_value_t<Range>, module_entry>
-        error_status load(Range&& module) noexcept
+        template <
+            template <typename...> typename EntryType,
+            typename ConstructionArg1,
+            typename ConstructionArg2,
+            template <typename...> typename NextEntryType,
+            typename... FurtherArgs
+        >
+        error_status emplace_entries(
+            template_param<EntryType> entry_type,
+            const std::string_view word,
+            ConstructionArg1&& construction_arg_1,
+            ConstructionArg2&& construction_arg_2,
+            template_param<NextEntryType> next_entry_type,
+            FurtherArgs&&... further_args
+        ) noexcept
         {
-            return this->load(rng::begin(module), rng::end(module));
+            if (const auto stat = this->emplace_entries(next_entry_type, std::forward<FurtherArgs>(further_args)...);
+                stat != error_status::success
+            )
+            {
+                return stat;
+            }
+
+            return this->emplace_entry(
+                entry_type,
+                word,
+                std::forward<ConstructionArg1>(construction_arg_1),
+                std::forward<ConstructionArg2>(construction_arg_2)
+            );
         }
 
-        [[nodiscard]] entry* find(const std::string_view word) const noexcept
+        [[nodiscard]] dictionary_entry* find(const std::string_view word) const noexcept
         {
-            entry* current = this->top();
+            dictionary_entry* current = this->top();
 
-            while (current != nullptr && !case_insensitive_compare(current->word, word))
+            while (current != nullptr && !case_insensitive_compare(current->word(), word))
                 current = current->next;
 
             return current;
@@ -187,7 +272,7 @@ namespace plapper
         { }
 
         buffer_type buffer_;
-        entry* top_ = nullptr;
+        dictionary_entry* top_ = nullptr;
 
     };
 
