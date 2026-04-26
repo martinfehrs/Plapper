@@ -17,7 +17,6 @@ namespace rng = std::ranges;
 
 namespace plapper
 {
-
     error_status store(data_stack& dstack) noexcept
     {
         return dstack.select(value, value_of<int_t*>).and_then(
@@ -29,42 +28,29 @@ namespace plapper
         );
     }
 
-    error_status times_divide(data_stack& dstack) noexcept
+    [[nodiscard]] int_t times_divide(const int_t n1, const int_t n2, const int_t n3) noexcept
     {
-        return dstack.select(3_cuz * value).and_then(
-            [&dstack](const dint_t n1, const dint_t n2, const dint_t n3)
-            {
-                return dstack.replace<3>(static_cast<int_t>(n1 * n2 / n3));
-            }
-        );
+        return static_cast<int_t>(dint_t{ n1 } * dint_t{ n2 } / dint_t{ n3 });
     }
 
-    error_status times_divide_mod(data_stack& dstack) noexcept
+    [[nodiscard]] std::tuple<int_t, int_t> times_divide_mod(const int_t n1, const int_t n2, const int_t n3) noexcept
     {
-        return dstack.select(3_cuz * value).and_then(
-            [&dstack](const dint_t n1, const dint_t n2, const dint_t n3)
-            {
-                const dint_t intermediate_product = n1 * n2;
-                const auto quotient = intermediate_product / n3;
-                const auto reminder = intermediate_product % n3;
+        const dint_t divisor{ n3 };
+        const dint_t intermediate_product = dint_t{ n1 } * dint_t{ n2 };
+        const auto quotient = intermediate_product / divisor;
+        const auto reminder = intermediate_product % divisor;
 
-                return dstack.replace<3>(static_cast<int_t>(quotient), static_cast<int_t>(reminder));
-            }
-        );
+        return { static_cast<int_t>(quotient), static_cast<int_t>(reminder) };
     }
 
-    error_status times(data_stack& dstack) noexcept
+    [[nodiscard]] int_t times(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 * n2); }
-        );
+        return n1 * n2;
     }
 
-    error_status plus(data_stack& dstack) noexcept
+    [[nodiscard]] int_t plus(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 + n2); }
-        );
+        return n1 + n2;
     }
 
     error_status plus_store(data_stack& dstack) noexcept
@@ -93,53 +79,40 @@ namespace plapper
         );
     }
 
-    error_status minus(data_stack& dstack) noexcept
+    [[nodiscard]] int_t minus(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2) { return dstack.replace<2>(n1 - n2); }
-        );
+        return n1 - n2;
     }
 
-    error_status dot(environment& env) noexcept
+    void dot(environment& env, const int_t n) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](const auto n)
-            {
-                static constexpr auto buffer_size = std::numeric_limits<int_t>::digits10 + 2;
-                static char buffer[buffer_size];
+        static constexpr auto buffer_size = std::numeric_limits<int_t>::digits10 + 2;
+        static char buffer[buffer_size];
 
-                const auto out = std::format_to(buffer, "{}", n);
+        const auto out = std::format_to(buffer, "{}", n);
 
-                env.term.write({ buffer, static_cast<std::size_t>(out - buffer) });
-                env.dstack.pop_unchecked();
-            }
-        );
+        env.term.write({ buffer, static_cast<std::size_t>(out - buffer) });
+        env.dstack.pop_unchecked();
     }
 
-    error_status divide(data_stack& dstack) noexcept
+    [[nodiscard]] std::expected<int_t, error_status> divide(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                return n2 == 0 ? error_status::division_by_zero
-                               : dstack.replace<2>(n1 / n2);
-            }
-        );
+        if (n2 == 0)
+            return std::unexpected(error_status::division_by_zero);
+
+        return n1 / n2;
     }
 
-    error_status divide_mod(data_stack& dstack) noexcept
+    [[nodiscard]] std::expected<std::tuple<int_t, int_t>, error_status> divide_mod(
+        const int_t n1, const int_t n2
+    ) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                if (n2 == 0)
-                    return error_status::division_by_zero;
+        if (n2 == 0)
+            return std::unexpected(error_status::division_by_zero);
 
-                const auto[quot, reminder] = std::div(n1, n2);
+        const auto[quot, reminder] = std::div(n1, n2);
 
-                return dstack.replace<2>(reminder, quot);
-            }
-        );
+        return std::tuple{ quot, reminder };
     }
 
     error_status zero_less(data_stack& dstack) noexcept
@@ -152,14 +125,14 @@ namespace plapper
         return dstack.select(value).and_then([](auto& x){ x = x == 0 ? yes : no; });
     }
 
-    error_status one_plus(data_stack& dstack) noexcept
+    void one_plus(int_t& n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n += 1; });
+        n += 1;
     }
 
-    error_status one_minus(data_stack& dstack) noexcept
+    void one_minus(int_t& n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n -= 1; });
+        n -= 1;
     }
 
     error_status two_store(data_stack& dstack) noexcept
@@ -297,14 +270,9 @@ namespace plapper
         return error_status::success;
     }
 
-    error_status less_than(data_stack& dstack) noexcept
+    [[nodiscard]] flag_t less_than(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                return dstack.replace<2>(n1 < n2 ? yes : no);
-            }
-        );
+        return n1 < n2 ? yes : no;
     }
 
     error_status equals(data_stack& dstack) noexcept
@@ -317,14 +285,9 @@ namespace plapper
         );
     }
 
-    error_status greater_than(data_stack& dstack) noexcept
+    [[nodiscard]] flag_t greater_than(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                return dstack.replace<2>(n1 > n2 ? yes : no);
-            }
-        );
+        return n1 > n2 ? yes : no;
     }
 
     error_status question_dupe(data_stack& dstack) noexcept
@@ -341,10 +304,11 @@ namespace plapper
         );
     }
 
-    error_status abs(data_stack& dstack) noexcept
+    [[nodiscard]] int_t abs(const int_t n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n = std::abs(n); });
+        return std::abs(n);
     }
+
 
     error_status aligned(data_stack& dstack) noexcept
     {
@@ -363,19 +327,14 @@ namespace plapper
         );
     }
 
-    error_status allot(environment& env) noexcept
+    error_status allot(environment& env, const int_t n) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](const auto n)
-            {
-                if (const auto mem = env.dict.allot<byte_t>(n); !mem)
-                    return mem.error();
+        if (const auto mem = env.dict.allot<byte_t>(n); !mem)
+            return mem.error();
 
-                env.dstack.pop_unchecked();
+        env.dstack.pop_unchecked();
 
-                return error_status::success;
-            }
-        );
+        return error_status::success;
     }
 
     error_status and_(data_stack& dstack) noexcept
@@ -395,9 +354,9 @@ namespace plapper
         return dstack.select(value).and_then([](auto& a_addr){ a_addr += cell_size; });
     }
 
-    error_status cells(data_stack& dstack) noexcept
+    void cells(int_t& n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n *= cell_size; });
+        n *= cell_size;
     }
 
     error_status char_(environment& env) noexcept
@@ -415,9 +374,9 @@ namespace plapper
         return dstack.select(value).and_then([](auto& c_addr){ c_addr += char_size; });
     }
 
-    error_status chars(data_stack& dstack) noexcept
+    void chars(int_t& n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n *= char_size; });
+        n *= char_size;
     }
 
     error_status constant_(environment& env) noexcept
@@ -521,20 +480,15 @@ namespace plapper
         return dstack.select(value).and_then([&dstack](const auto x){ return dstack.push(x); });
     }
 
-    error_status emit(environment& env) noexcept
+    error_status emit(environment& env, const int_t x) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](const auto x)
-            {
-                if (x < 0 || x > 127)
-                    return error_status::out_of_character_range;
+        if (x < 0 || x > 127)
+            return error_status::out_of_character_range;
 
-                env.term.write(static_cast<char>(x));
-                env.dstack.pop_unchecked();
+        env.term.write(static_cast<char>(x));
+        env.dstack.pop_unchecked();
 
-                return error_status::success;
-            }
-        );
+        return error_status::success;
     }
 
     error_status here(environment& env) noexcept
@@ -585,42 +539,27 @@ namespace plapper
         );
     }
 
-    error_status max(data_stack& dstack) noexcept
+    [[nodiscard]] int_t max(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                return dstack.replace<2>(std::max(n1, n2));
-            }
-        );
+        return std::max(n1, n2);
     }
 
-    error_status min(data_stack& dstack) noexcept
+    [[nodiscard]] int_t min(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                return dstack.replace<2>(std::min(n1, n2));
-            }
-        );
+        return std::min(n1, n2);
     }
 
-    error_status mod(data_stack& dstack) noexcept
+    std::expected<int_t, error_status> mod(const int_t n1, const int_t n2) noexcept
     {
-        return dstack.select(2_cuz * value).and_then(
-            [&dstack](const auto n1, const auto n2)
-            {
-                if (n2 == 0)
-                    return error_status::division_by_zero;
+        if (n2 == 0)
+            return std::unexpected(error_status::division_by_zero);
 
-                return dstack.replace<2>(n1 % n2);
-            }
-        );
+        return n1 % n2;
     }
 
-    error_status negate(data_stack& dstack) noexcept
+    void negate(int_t& n) noexcept
     {
-        return dstack.select(value).and_then([](auto& n){ n = -n; });
+        n = -n;
     }
 
     error_status or_(data_stack& dstack) noexcept
@@ -664,22 +603,15 @@ namespace plapper
         return dstack.push(0);
     }
 
-    error_status space(environment& env) noexcept
+    void space(terminal& term) noexcept
     {
-        env.term.write(' ');
-
-        return error_status::success;
+        term.write(' ');
     }
 
-    error_status spaces(environment& env) noexcept
+    void spaces(environment& env, const int_t n) noexcept
     {
-        return env.dstack.select(value).and_then(
-            [&env](const auto n)
-            {
-                env.term.write_n(' ', n);
-                env.dstack.pop_unchecked();
-            }
-        );
+        env.term.write_n(' ', n);
+        env.dstack.pop_unchecked();
     }
 
     error_status state(environment& env) noexcept
@@ -720,14 +652,9 @@ namespace plapper
         );
     }
 
-    error_status u_less_than(data_stack& dstack) noexcept
+    [[nodiscard]] flag_t u_less_than(const uint_t u1, const uint_t u2) noexcept
     {
-        return dstack.select(2_cuz * value_of<uint_t>).and_then(
-            [&dstack](const auto u1, const auto u2)
-            {
-                return dstack.replace<2>(u1 < u2);
-            }
-        );
+        return u1 < u2 ? yes : no;
     }
 
     error_status variable_(environment& env) noexcept

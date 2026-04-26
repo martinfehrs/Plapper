@@ -2,6 +2,7 @@ module;
 
 #include <string_view>
 #include <type_traits>
+#include <expected>
 
 export module plapper:core_word_entries;
 
@@ -88,6 +89,121 @@ namespace plapper
             else if constexpr (std::is_same_v<Callback, error_status(data_stack&) noexcept>)
             {
                 return this->callback(env.dstack);
+            }
+            else if constexpr (std::is_same_v<Callback, void(terminal&) noexcept>)
+            {
+                return this->callback(env.term), error_status::success;
+            }
+            else if constexpr (std::is_same_v<Callback, error_status(environment&, int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a){ return this->callback(env, a); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, void(environment&, int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a){ return this->callback(env, a), error_status::success; }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, error_status(data_stack&, int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a){ return this->callback(env.dstack, a); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, error_status(data_stack&, int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value).and_then(
+                    [this, &env](auto a, auto b){ return this->callback(env.dstack, a, b); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, error_status(data_stack&, int_t, int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(3_cuz * value).and_then(
+                    [this, &env](auto a, auto b, auto c){ return this->callback(env.dstack, a, b, c); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, int_t(int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a){ return env.dstack.replace<1>(this->callback(a)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, int_t(int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value).and_then(
+                    [this, &env](auto a, auto b){ return env.dstack.replace<2>(this->callback(a, b)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, uint_t(uint_t, uint_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value_of<uint_t>).and_then(
+                    [this, &env](auto a, auto b){ return env.dstack.replace<2>(this->callback(a, b)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, flag_t(int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value).and_then(
+                    [this, &env](auto a, auto b){ return env.dstack.replace<2>(this->callback(a, b)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, flag_t(uint_t, uint_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value_of<uint_t>).and_then(
+                    [this, &env](auto a, auto b){ return env.dstack.replace<2>(this->callback(a, b)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, std::expected<int_t, error_status>(int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value).and_then(
+                    [this, &env](auto a, auto b)
+                    {
+                        auto ret = this->callback(a, b);
+
+                        if (!ret)
+                            return ret.error();
+
+                        return env.dstack.replace<2>(*ret);
+                    }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, std::expected<std::tuple<int_t, int_t>, error_status>(int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(2_cuz * value).and_then(
+                    [this, &env](auto a, auto b)
+                    {
+                        auto ret = this->callback(a, b);
+
+                        if (!ret)
+                            return ret.error();
+
+                        return env.dstack.replace<2>(std::get<0>(*ret), std::get<1>(*ret));
+                    }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, int_t(int_t, int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(3_cuz * value).and_then(
+                    [this, &env](auto a, auto b, auto c){ return env.dstack.replace<3>(this->callback(a, b, c)); }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, std::tuple<int_t, int_t>(int_t, int_t, int_t) noexcept>)
+            {
+                return env.dstack.select(3_cuz * value).and_then(
+                    [this, &env](auto a, auto b, auto c)
+                    {
+                        const auto ret = this->callback(a, b, c);
+
+                        return env.dstack.replace<3>(std::get<0>(ret), std::get<1>(ret));
+                    }
+                );
+            }
+            else if constexpr (std::is_same_v<Callback, void(int_t&) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this](auto& a){ return this->callback(a), error_status::success; }
+                );
             }
             else
             {
