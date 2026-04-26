@@ -40,7 +40,14 @@ target_sources(PlapperLib
         type_params.ixx
 )
 
-set_property(TARGET PlapperLib PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+set_property(TARGET PlapperLib PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+set_property(TARGET PlapperLib PROPERTY CXX_VISIBILITY_PRESET hidden)
+set_property(TARGET PlapperLib PROPERTY VISIBILITY_INLINES_HIDDEN ON)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(PlapperLib PRIVATE "$<$<CONFIG:Release>:-fwhole-program-vtables>")
+    target_link_options(PlapperLib PRIVATE "$<$<CONFIG:Release>:-fwhole-program-vtables>")
+endif()
 
 target_include_directories(PlapperLib PRIVATE ${Boost_INCLUDE_DIRS})
 
@@ -51,7 +58,15 @@ target_sources(Plapper
         main.cpp
 )
 
-set_property(TARGET Plapper PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+set_property(TARGET Plapper PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+set_property(TARGET Plapper PROPERTY CXX_VISIBILITY_PRESET hidden)
+set_property(TARGET Plapper PROPERTY VISIBILITY_INLINES_HIDDEN ON)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(Plapper PRIVATE "$<$<CONFIG:Release>:-fwhole-program-vtables>")
+    target_link_options(Plapper PRIVATE "$<$<CONFIG:Release>:-fwhole-program-vtables>")
+endif()
+
 
 target_link_libraries(Plapper PlapperLib)
 
