@@ -1,6 +1,5 @@
 module;
 
-#include <print>
 #include <iostream>
 
 export module plapper:interpreter;
@@ -23,7 +22,7 @@ namespace plapper
 
         static expected<interpreter> from_settings(const settings& settings) noexcept
         {
-            auto dict = plapper::dictionary::of_capacity(settings.dict_capacity);
+            auto dict = dictionary::of_capacity(settings.dict_capacity);
 
             if (!dict)
                 return unexpected(dict.error());
