@@ -487,39 +487,28 @@ namespace plapper
             return self.select_impl((filters + ... + selection_filter{}));
         }
 
-        template <size_type count>
-        error_status replace(value_type new_value)
+        template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
+            requires(sizeof...(Values) <= count)
+        void replace_unchecked(Values... new_values) noexcept
         {
-            if constexpr (count == 0uz)
-            {
-                return this->push(new_value);
-            }
-            else
-            {
-                if constexpr(count > 1uz)
-                {
-                    this->pop_n_unchecked(count - 1uz);
-                }
+            assert(count > this->size());
 
-                this->buffer_[this->buffer_.size() - 1uz] = new_value;
-
-                return error_status::success;
-            }
+            replace_unchecked_impl<count>(new_values...);
         }
 
         template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
-        error_status replace(value_type new_value, Values... new_values)
+        error_status replace(Values... new_values) noexcept
         {
-            assert(count <= this->size());
+            if (count > this->size())
+                return error_status::stack_underflow;
 
-            if constexpr (count == 0uz)
+            if constexpr (count >= sizeof...(new_values))
             {
-                return this->push(new_value, new_values...);
+                return this->replace_unchecked_impl<count>(new_values...), error_status::success;
             }
             else
             {
-                this->buffer_[this->buffer_.size() - count] = new_value;
-                return replace<count - 1uz>(new_values...);
+                return this->replace_impl<count>(new_values...);
             }
         }
 
@@ -569,6 +558,44 @@ namespace plapper
         void push_impl(std::index_sequence<indices...>, Values... values) noexcept
         {
             ((this->buffer_[this->buffer_.size() - sizeof...(values) + indices] = values), ...);
+        }
+
+        template <size_type count> requires (count > 0uz)
+        void replace_unchecked_impl(value_type new_value) noexcept
+        {
+            if constexpr (count > 1uz)
+            {
+                this->pop_n_unchecked(count - 1uz);
+            }
+
+            this->buffer_[this->buffer_.size() - 1uz] = new_value;
+        }
+
+        template <size_type count> requires (count > 0uz)
+        error_status replace_impl(value_type new_value) noexcept
+        {
+            return replace_unchecked<count>(new_value), error_status::success;
+        }
+
+        template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
+        void replace_unchecked_impl(value_type new_value, Values... new_values) noexcept
+        {
+            this->buffer_[this->buffer_.size() - count] = new_value;
+            replace_unchecked_impl<count - 1uz>(new_values...);
+        }
+
+        template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
+        error_status replace_impl(value_type new_value, Values... new_values) noexcept
+        {
+            if constexpr (count == 0uz)
+            {
+                return this->push(new_value, new_values...);
+            }
+            else
+            {
+                this->buffer_[this->buffer_.size() - count] = new_value;
+                return replace_impl<count - 1uz>(new_values...);
+            }
         }
 
         buffer_type buffer_;
