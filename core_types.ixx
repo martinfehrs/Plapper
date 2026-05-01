@@ -11,13 +11,15 @@ namespace plapper
 
     export struct environment;
 
-    export using byte_t = std::uint8_t;
-    export using char_t = char;
-    export using int_t = std::intptr_t;
-    export using uint_t = std::uintptr_t;
-    export using dint_t = __int128_t;
+    export using byte_t  = std::uint8_t;
+    export using char_t  = char;
+    export using int_t   = std::intptr_t;
+    export using uint_t  = std::uintptr_t;
+    export using dint_t  = __int128_t;
     export using duint_t = __uint128_t;
-    export using flag_t = std::uintptr_t;
+    export using flag_t  = std::uintptr_t;
+    export using num_t   = std::intptr_t;
+    export using val_t   = std::intptr_t;
 
     struct execution_token
     {

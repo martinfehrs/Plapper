@@ -134,6 +134,12 @@ namespace plapper
                     [this, &env](auto a){ return env.dstack.replace<1>(this->callback(a)); }
                 );
             }
+            else if constexpr (std::is_same_v<Callback, flag_t(int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a){ return env.dstack.replace<1>(this->callback(a)); }
+                );
+            }
             else if constexpr (std::is_same_v<Callback, int_t(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(

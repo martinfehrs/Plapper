@@ -115,14 +115,14 @@ namespace plapper
         return std::tuple{ quot, reminder };
     }
 
-    error_status zero_less(data_stack& dstack) noexcept
+    [[nodiscard]] flag_t zero_less(const int_t n) noexcept
     {
-        return dstack.select(value).and_then([](auto& x){ x = x < 0 ? yes : no; });
+        return n < 0 ? yes : no;
     }
 
-    error_status zero_equals(data_stack& dstack) noexcept
+    [[nodiscard]] flag_t zero_equals(const val_t x) noexcept
     {
-        return dstack.select(value).and_then([](auto& x){ x = x == 0 ? yes : no; });
+        return x == 0 ? yes : no;
     }
 
     void one_plus(int_t& n) noexcept
