@@ -124,6 +124,10 @@ namespace plapper
                     [this, &env](auto a, auto b, auto c){ return this->callback(env.dstack, a, b, c); }
                 );
             }
+            else if constexpr (std::is_same_v<Callback, int_t() noexcept>)
+            {
+                return env.dstack.push(this->callback());
+            }
             else if constexpr (std::is_same_v<Callback, int_t(int_t) noexcept>)
             {
                 return env.dstack.select(value).and_then(
@@ -178,7 +182,9 @@ namespace plapper
                         if (!ret)
                             return ret.error();
 
-                        return env.dstack.replace<2>(std::get<0>(*ret), std::get<1>(*ret));
+                        env.dstack.replace_unchecked<2>(std::get<0>(*ret), std::get<1>(*ret));
+
+                        return error_status::success;
                     }
                 );
             }
