@@ -1,7 +1,6 @@
 module;
 
 #include <cstdio>
-#include <expected>
 #include <format>
 #include <cstring>
 #include <csignal>
@@ -83,7 +82,7 @@ namespace plapper
                 std::signal(SIGINT, previous_signal_handler);
         }
 
-        [[nodiscard]] static std::expected<char_t, error_status> read_char() noexcept
+        [[nodiscard]] static expected<char_t> read_char() noexcept
         {
             std::lock_guard guard{ terminal_mutex };
 
@@ -101,7 +100,7 @@ namespace plapper
             const auto c = std::getchar();
 
             if (c == EOF)
-                return std::unexpected(error_status::input_error);
+                return unexpected(error_status::input_error);
 
             tcsetattr(STDIN_FILENO, TCSANOW, &saved_state);
 

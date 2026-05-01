@@ -3,7 +3,6 @@ module;
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <expected>
 #include <ranges>
 #include <type_traits>
 
@@ -352,12 +351,12 @@ namespace plapper
         stack& operator=(const stack&) = delete;
         stack& operator=(stack&& that) noexcept = default;
 
-        [[nodiscard]] static std::expected<stack, error_status> of_capacity(const std::size_t capacity) noexcept
+        [[nodiscard]] static expected<stack> of_capacity(const std::size_t capacity) noexcept
         {
             auto buffer = buffer_type::of_capacity(capacity);
 
             if (!buffer)
-                return std::unexpected(buffer.error());
+                return unexpected(buffer.error());
 
             return stack{ std::move(*buffer) };
         }

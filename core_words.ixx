@@ -2,7 +2,6 @@ module;
 
 #include <algorithm>
 #include <cstring>
-#include <expected>
 #include <format>
 
 export module plapper:core_words;
@@ -12,6 +11,7 @@ import :dictionary;
 import :environment;
 import :core_word_entries;
 import :type_params;
+import :error;
 
 namespace rng = std::ranges;
 
@@ -95,20 +95,20 @@ namespace plapper
         env.dstack.pop_unchecked();
     }
 
-    [[nodiscard]] std::expected<int_t, error_status> divide(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] expected<int_t> divide(const int_t n1, const int_t n2) noexcept
     {
         if (n2 == 0)
-            return std::unexpected(error_status::division_by_zero);
+            return unexpected(error_status::division_by_zero);
 
         return n1 / n2;
     }
 
-    [[nodiscard]] std::expected<std::tuple<int_t, int_t>, error_status> divide_mod(
+    [[nodiscard]] expected<std::tuple<int_t, int_t>> divide_mod(
         const int_t n1, const int_t n2
     ) noexcept
     {
         if (n2 == 0)
-            return std::unexpected(error_status::division_by_zero);
+            return unexpected(error_status::division_by_zero);
 
         const auto[quot, reminder] = std::div(n1, n2);
 
@@ -503,7 +503,7 @@ namespace plapper
 
     error_status key(environment& env) noexcept
     {
-        std::expected<char_t, error_status> c;
+        expected<char_t> c;
 
         do
         {
@@ -549,10 +549,10 @@ namespace plapper
         return std::min(n1, n2);
     }
 
-    std::expected<int_t, error_status> mod(const int_t n1, const int_t n2) noexcept
+    expected<int_t> mod(const int_t n1, const int_t n2) noexcept
     {
         if (n2 == 0)
-            return std::unexpected(error_status::division_by_zero);
+            return unexpected(error_status::division_by_zero);
 
         return n1 % n2;
     }
@@ -720,12 +720,12 @@ namespace plapper
         int_t* base;
     };
 
-    std::expected<shared_core_word_data, error_status> load_core_words(dictionary& dict)
+    expected<shared_core_word_data> load_core_words(dictionary& dict)
     {
         auto base = dict.allot<int_t>();
 
         if (!base)
-            return std::unexpected(base.error());
+            return unexpected(base.error());
 
         const auto stat = dict.emplace_entries(
             template_v<procedure>, "!"           , store              ,
@@ -864,7 +864,7 @@ namespace plapper
         );
 
         if (stat != error_status::success)
-            return std::unexpected(stat);
+            return unexpected(stat);
 
         return shared_core_word_data{ *base };
     }

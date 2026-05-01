@@ -3,7 +3,6 @@ module;
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <expected>
 #include <limits>
 #include <utility>
 #include <iterator>
@@ -129,14 +128,14 @@ namespace plapper
             this->swap(that);
         }
 
-        static std::expected<memory_buffer, error_status> of_capacity(const std::size_t capacity) noexcept
+        static expected<memory_buffer> of_capacity(const std::size_t capacity) noexcept
         {
             memory_buffer instance{ uninitialized };
 
             instance.data_ = static_cast<Element*>(malloc(capacity * sizeof(Element)));
 
             if (instance.data_ == nullptr)
-                return std::unexpected(error_status::out_of_memory);
+                return unexpected(error_status::out_of_memory);
 
             instance.size_ = 0uz;
             instance.capacity_ = capacity;

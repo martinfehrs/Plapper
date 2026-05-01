@@ -3,13 +3,13 @@ module;
 #include <algorithm>
 #include <cstring>
 #include <istream>
-#include <expected>
 #include <ranges>
 
 export module plapper:input_buffer;
 
 import :memory_buffer;
 import :terminal;
+import :error;
 
 namespace rng = std::ranges;
 
@@ -29,12 +29,12 @@ namespace plapper
         input_buffer& operator=(const input_buffer&) = delete;
         input_buffer& operator=(input_buffer&& that) noexcept = default;
 
-        [[nodiscard]] static std::expected<input_buffer, error_status> of_capacity(const std::size_t capacity) noexcept
+        [[nodiscard]] static expected<input_buffer> of_capacity(const std::size_t capacity) noexcept
         {
             auto buffer = buffer_type::of_capacity(capacity);
 
             if (!buffer)
-                return std::unexpected(buffer.error());
+                return unexpected(buffer.error());
 
             return input_buffer{ std::move(*buffer) };
         }

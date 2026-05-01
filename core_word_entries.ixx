@@ -2,12 +2,12 @@ module;
 
 #include <string_view>
 #include <type_traits>
-#include <expected>
 
 export module plapper:core_word_entries;
 
 import :dictionary;
 import :environment;
+import :error;
 
 namespace plapper
 {
@@ -164,7 +164,7 @@ namespace plapper
                     [this, &env](auto a, auto b){ return env.dstack.replace<2>(this->callback(a, b)); }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, std::expected<int_t, error_status>(int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, expected<int_t>(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)
@@ -178,7 +178,7 @@ namespace plapper
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, std::expected<std::tuple<int_t, int_t>, error_status>(int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, expected<std::tuple<int_t, int_t>>(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)

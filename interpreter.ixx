@@ -1,6 +1,5 @@
 module;
 
-#include <expected>
 #include <print>
 #include <iostream>
 
@@ -12,6 +11,7 @@ import :core_extension_words;
 import :programming_tools_words;
 import :settings;
 import :dictionary;
+import :error;
 
 namespace plapper
 {
@@ -21,43 +21,43 @@ namespace plapper
 
     public:
 
-        static std::expected<interpreter, error_status> from_settings(const settings& settings) noexcept
+        static expected<interpreter> from_settings(const settings& settings) noexcept
         {
             auto dict = plapper::dictionary::of_capacity(settings.dict_capacity);
 
             if (!dict)
-                return std::unexpected(dict.error());
+                return unexpected(dict.error());
 
             auto dstack = data_stack::of_capacity(settings.dstack_capacity);
 
             if (!dstack)
-                return std::unexpected(dstack.error());
+                return unexpected(dstack.error());
 
             auto rstack = return_stack::of_capacity(settings.rstack_capacity);
 
             if (!rstack)
-                return std::unexpected(rstack.error());
+                return unexpected(rstack.error());
 
             auto tib = input_buffer::of_capacity(settings.tib_capacity);
 
             if (!tib)
-                return std::unexpected(tib.error());
+                return unexpected(tib.error());
 
             auto core_words_data = load_core_words(*dict);
 
             if (!core_words_data)
-                return std::unexpected(core_words_data.error());
+                return unexpected(core_words_data.error());
 
             if ((settings.additional_modules & modules::core_extension) == modules::core_extension)
             {
                 if (auto stat = load_core_extension_words(*dict, *core_words_data); stat != error_status::success)
-                    return std::unexpected(stat);
+                    return unexpected(stat);
             }
 
             if ((settings.additional_modules & modules::programming_tools) == modules::programming_tools)
             {
                 if (auto stat = load_programming_tool_words(*dict); stat != error_status::success)
-                    return std::unexpected(stat);
+                    return unexpected(stat);
             }
 
             return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };

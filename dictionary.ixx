@@ -1,7 +1,6 @@
 module;
 
 #include <cctype>
-#include <expected>
 #include <iterator>
 #include <string_view>
 #include <stack>
@@ -114,12 +113,12 @@ namespace plapper
         dictionary& operator=(const dictionary&) = delete;
         dictionary& operator=(dictionary&& that) noexcept = default;
 
-        static std::expected<dictionary, error_status> of_capacity(const std::size_t capacity) noexcept
+        static expected<dictionary> of_capacity(const std::size_t capacity) noexcept
         {
             auto buffer = buffer_type::of_capacity(capacity);
 
             if (!buffer)
-                return std::unexpected(buffer.error());
+                return unexpected(buffer.error());
 
             return dictionary{ std::move(*buffer) };
         }
@@ -130,18 +129,18 @@ namespace plapper
         }
 
         template <typename T>
-        [[nodiscard]] std::expected<T*, error_status> allot(const std::size_t count = 1) noexcept
+        [[nodiscard]] expected<T*> allot(const std::size_t count = 1) noexcept
         {
             const auto size_diff = count * sizeof(T);
 
             if (this->buffer_.resize(this->buffer_.size() + size_diff) != error_status::success)
-                return std::unexpected(error_status::out_of_memory);
+                return unexpected(error_status::out_of_memory);
 
             return reinterpret_cast<T*>(this->buffer_.end() - size_diff);
         }
 
         template <typename T, typename... Args>
-        [[nodiscard]] std::expected<T*, error_status> create(Args&&... args) noexcept
+        [[nodiscard]] expected<T*> create(Args&&... args) noexcept
         {
             auto mem = this->allot<T>();
 
@@ -152,7 +151,7 @@ namespace plapper
         }
 
         template <typename Value>
-        std::expected<Value*, error_status> append(Value value) noexcept
+        expected<Value*> append(Value value) noexcept
         {
             return this->create<Value>(value);
         }
