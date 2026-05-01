@@ -2,6 +2,7 @@ module;
 
 #include <cstddef>
 #include <array>
+#include <expected>
 
 export module plapper:error;
 
@@ -38,5 +39,8 @@ namespace plapper
     {
         return error_messages[static_cast<std::size_t>(stat) - 1];
     }
+
+    template <typename T>
+    using expected = std::expected<T, error_status>;
 
 }
