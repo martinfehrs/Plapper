@@ -223,7 +223,7 @@ namespace plapper
                         if (!ret)
                             return ret.error();
 
-                        env.dstack.replace_unchecked<2>(std::get<0>(*ret), std::get<1>(*ret));
+                        env.dstack.replace_with_range_unchecked<2>(*ret);
 
                         return error_status::success;
                     }
@@ -243,9 +243,7 @@ namespace plapper
                 return env.dstack.select(3_cuz * value).and_then(
                     [this, &env](auto a, auto b, auto c)
                     {
-                        const auto ret = this->callback(a, b, c);
-
-                        env.dstack.replace_unchecked<3>(std::get<0>(ret), std::get<1>(ret));
+                        env.dstack.replace_with_range_unchecked<3>(this->callback(a, b, c));
                     }
                 );
             }
