@@ -218,14 +218,7 @@ namespace plapper
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        auto ret = this->callback(a, b);
-
-                        if (!ret)
-                            return ret.error();
-
-                        env.dstack.replace_with_range_unchecked<2>(*ret);
-
-                        return error_status::success;
+                        return env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }

@@ -530,6 +530,17 @@ namespace plapper
             return std::apply([this](auto... args){ return this->replace<count>(args...); }, values);
         }
 
+        template <size_type count, typename Range>
+        error_status replace_with_range_unchecked(const expected<Range>& values) noexcept
+        {
+            if (!values)
+                values.error();
+
+            std::apply([this](auto... args){ this->replace_unchecked<count>(args...); }, *values);
+
+            return error_status::success;
+        }
+
     private:
 
         explicit stack(buffer_type&& buffer) noexcept
