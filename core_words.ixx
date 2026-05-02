@@ -28,9 +28,9 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] int_t times_divide(const int_t n1, const int_t n2, const int_t n3) noexcept
+    [[nodiscard]] std::tuple<int_t> times_divide(const int_t n1, const int_t n2, const int_t n3) noexcept
     {
-        return static_cast<int_t>(dint_t{ n1 } * dint_t{ n2 } / dint_t{ n3 });
+        return { static_cast<int_t>(dint_t{ n1 } * dint_t{ n2 } / dint_t{ n3 }) };
     }
 
     [[nodiscard]] std::tuple<int_t, int_t> times_divide_mod(const int_t n1, const int_t n2, const int_t n3) noexcept
@@ -43,14 +43,14 @@ namespace plapper
         return { static_cast<int_t>(quotient), static_cast<int_t>(reminder) };
     }
 
-    [[nodiscard]] int_t times(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<int_t> times(const int_t n1, const int_t n2) noexcept
     {
-        return n1 * n2;
+        return { n1 * n2 };
     }
 
-    [[nodiscard]] int_t plus(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<int_t> plus(const int_t n1, const int_t n2) noexcept
     {
-        return n1 + n2;
+        return { n1 + n2 };
     }
 
     error_status plus_store(data_stack& dstack) noexcept
@@ -79,12 +79,12 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] int_t minus(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<int_t> minus(const int_t n1, const int_t n2) noexcept
     {
-        return n1 - n2;
+        return { n1 - n2 };
     }
 
-    void dot(environment& env, const int_t n) noexcept
+    std::tuple<> dot(environment& env, const int_t n) noexcept
     {
         static constexpr auto buffer_size = std::numeric_limits<int_t>::digits10 + 2;
         static char buffer[buffer_size];
@@ -92,10 +92,11 @@ namespace plapper
         const auto out = std::format_to(buffer, "{}", n);
 
         env.term.write({ buffer, static_cast<std::size_t>(out - buffer) });
-        env.dstack.pop_unchecked();
+
+        return {};
     }
 
-    [[nodiscard]] expected<int_t> divide(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] expected<std::tuple<int_t>> divide(const int_t n1, const int_t n2) noexcept
     {
         if (n2 == 0)
             return unexpected(error_status::division_by_zero);
@@ -115,12 +116,12 @@ namespace plapper
         return std::tuple{ quot, reminder };
     }
 
-    [[nodiscard]] flag_t zero_less(const int_t n) noexcept
+    [[nodiscard]] std::tuple<flag_t> zero_less(const int_t n) noexcept
     {
         return n < 0 ? yes : no;
     }
 
-    [[nodiscard]] flag_t zero_equals(const val_t x) noexcept
+    [[nodiscard]] std::tuple<flag_t> zero_equals(const val_t x) noexcept
     {
         return x == 0 ? yes : no;
     }
@@ -270,7 +271,7 @@ namespace plapper
         return error_status::success;
     }
 
-    [[nodiscard]] flag_t less_than(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<flag_t> less_than(const int_t n1, const int_t n2) noexcept
     {
         return n1 < n2 ? yes : no;
     }
@@ -285,7 +286,7 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] flag_t greater_than(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<flag_t> greater_than(const int_t n1, const int_t n2) noexcept
     {
         return n1 > n2 ? yes : no;
     }
@@ -304,7 +305,7 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] int_t abs(const int_t n) noexcept
+    [[nodiscard]] std::tuple<int_t> abs(const int_t n) noexcept
     {
         return std::abs(n);
     }
@@ -539,17 +540,17 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] int_t max(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<int_t> max(const int_t n1, const int_t n2) noexcept
     {
         return std::max(n1, n2);
     }
 
-    [[nodiscard]] int_t min(const int_t n1, const int_t n2) noexcept
+    [[nodiscard]] std::tuple<int_t> min(const int_t n1, const int_t n2) noexcept
     {
         return std::min(n1, n2);
     }
 
-    expected<int_t> mod(const int_t n1, const int_t n2) noexcept
+    expected<std::tuple<int_t>> mod(const int_t n1, const int_t n2) noexcept
     {
         if (n2 == 0)
             return unexpected(error_status::division_by_zero);
@@ -652,7 +653,7 @@ namespace plapper
         );
     }
 
-    [[nodiscard]] flag_t u_less_than(const uint_t u1, const uint_t u2) noexcept
+    [[nodiscard]] std::tuple<flag_t> u_less_than(const uint_t u1, const uint_t u2) noexcept
     {
         return u1 < u2 ? yes : no;
     }

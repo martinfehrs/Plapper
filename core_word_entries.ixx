@@ -112,6 +112,15 @@ namespace plapper
                     }
                 );
             }
+            else if constexpr (std::is_same_v<Callback, std::tuple<>(environment&, int_t) noexcept>)
+            {
+                return env.dstack.select(value).and_then(
+                    [this, &env](auto a)
+                    {
+                        std::ignore = this->callback(env, a);
+                    }
+                );
+            }
             else if constexpr (std::is_same_v<Callback, error_status(data_stack&, int_t) noexcept>)
             {
                 return env.dstack.select(value).and_then(
@@ -139,77 +148,70 @@ namespace plapper
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, int_t() noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<int_t>() noexcept>)
             {
-                return env.dstack.push(this->callback());
+                return env.dstack.replace_with_range(this->callback());
             }
-            else if constexpr (std::is_same_v<Callback, int_t(int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<int_t>(int_t) noexcept>)
             {
                 return env.dstack.select(value).and_then(
                     [this, &env](auto a)
                     {
-                        env.dstack.replace_unchecked<1>(this->callback(a));
+                        env.dstack.replace_with_range_unchecked<1>(this->callback(a));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, flag_t(int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<flag_t>(int_t) noexcept>)
             {
                 return env.dstack.select(value).and_then(
                     [this, &env](auto a)
                     {
-                        env.dstack.replace_unchecked<1>(this->callback(a));
+                        env.dstack.replace_with_range_unchecked<1>(this->callback(a));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, int_t(int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<int_t>(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        env.dstack.replace_unchecked<2>(this->callback(a, b));
+                        env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, uint_t(uint_t, uint_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<uint_t>(uint_t, uint_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value_of<uint_t>).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        env.dstack.replace_unchecked<2>(this->callback(a, b));
+                        env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, flag_t(int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<flag_t>(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        env.dstack.replace_unchecked<2>(this->callback(a, b));
+                        env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, flag_t(uint_t, uint_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<flag_t>(uint_t, uint_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value_of<uint_t>).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        env.dstack.replace_unchecked<2>(this->callback(a, b));
+                        env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, expected<int_t>(int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, expected<std::tuple<int_t>>(int_t, int_t) noexcept>)
             {
                 return env.dstack.select(2_cuz * value).and_then(
                     [this, &env](auto a, auto b)
                     {
-                        auto ret = this->callback(a, b);
-
-                        if (!ret)
-                            return ret.error();
-
-                        env.dstack.replace_unchecked<2>(*ret);
-
-                        return error_status::success;
+                        return env.dstack.replace_with_range_unchecked<2>(this->callback(a, b));
                     }
                 );
             }
@@ -222,12 +224,12 @@ namespace plapper
                     }
                 );
             }
-            else if constexpr (std::is_same_v<Callback, int_t(int_t, int_t, int_t) noexcept>)
+            else if constexpr (std::is_same_v<Callback, std::tuple<int_t>(int_t, int_t, int_t) noexcept>)
             {
                 return env.dstack.select(3_cuz * value).and_then(
                     [this, &env](auto a, auto b, auto c)
                     {
-                        env.dstack.replace_unchecked<3>(this->callback(a, b, c));
+                        env.dstack.replace_with_range_unchecked<3>(this->callback(a, b, c));
                     }
                 );
             }
