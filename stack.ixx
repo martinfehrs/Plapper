@@ -5,6 +5,7 @@ module;
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
+#include <tuple>
 
 export module plapper:stack;
 
@@ -51,6 +52,12 @@ namespace plapper
         requires stack_element<Type1>;
         requires stack_element<Type2>;
         requires equally_sized<Type1, Type2>;
+    };
+
+    template <typename Function, typename Tuple>
+    concept is_applicable = requires(Function&& function, Tuple&& tuple)
+    {
+        std::apply(std::forward<Function>(function), std::forward<Tuple>(tuple));
     };
 
     export template <typename T>
@@ -388,13 +395,6 @@ namespace plapper
             std::ignore = this->buffer_.resize(this->buffer_.size() - 1uz);
         }
 
-        void pop_n_unchecked(size_type count) noexcept
-        {
-            assert(this->buffer_.size() >= count);
-
-            std::ignore = this->buffer_.resize(this->buffer_.size() - count);
-        }
-
         [[nodiscard]] error_status pop() noexcept
         {
             if (this->buffer_.empty())
@@ -403,6 +403,13 @@ namespace plapper
             this->pop_unchecked();
 
             return error_status::success;
+        }
+
+        void pop_n_unchecked(size_type count) noexcept
+        {
+            assert(this->buffer_.size() >= count);
+
+            std::ignore = this->buffer_.resize(this->buffer_.size() - count);
         }
 
         [[nodiscard]] error_status pop_n(size_type count) noexcept
@@ -509,6 +516,18 @@ namespace plapper
             {
                 return this->replace_impl<count>(new_values...);
             }
+        }
+
+        template <size_type count>
+        void replace_with_range_unchecked(const auto& values)
+        {
+            std::apply([this](auto... args){ this->replace_unchecked<count>(args...); }, values);
+        }
+
+        template <size_type count>
+        error_status replace_with_range(const auto& values)
+        {
+            return std::apply([this](auto... args){ return this->replace<count>(args...); }, values);
         }
 
     private:
