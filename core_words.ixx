@@ -148,14 +148,14 @@ namespace plapper
         );
     }
 
-    error_status two_star(data_stack& dstack) noexcept
+    void two_star(val_t& x) noexcept
     {
-        return dstack.select(value).and_then([](auto& x){ x <<= 1; });
+        x <<= 1;
     }
 
-    error_status two_slash(data_stack& dstack) noexcept
+    void two_slash(val_t& x) noexcept
     {
-        return dstack.select(value).and_then([](auto& x){ x >>= 1; });
+        x >>= 1;
     }
 
     error_status two_fetch(data_stack& dstack) noexcept
@@ -168,9 +168,9 @@ namespace plapper
         );
     }
 
-    error_status two_drop(data_stack& dstack) noexcept
+    std::tuple<> two_drop(const val_t, const val_t) noexcept
     {
-        return dstack.pop_n(2);
+        return {};
     }
 
     error_status two_dupe(data_stack& dstack) noexcept
