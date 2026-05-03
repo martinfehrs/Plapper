@@ -589,28 +589,33 @@ namespace plapper
             ((this->buffer_[this->buffer_.size() - sizeof...(values) + indices] = values), ...);
         }
 
-        template <size_type count> requires (count > 0uz)
-        void replace_unchecked_impl(value_type new_value) noexcept
+        template <size_type count>
+        void replace_unchecked_impl() noexcept
         {
-            if constexpr (count > 1uz)
+            if constexpr (count > 0uz)
             {
-                this->pop_n_unchecked(count - 1uz);
+                this->pop_n_unchecked(count);
             }
-
-            this->buffer_[this->buffer_.size() - 1uz] = new_value;
-        }
-
-        template <size_type count> requires (count > 0uz)
-        error_status replace_impl(value_type new_value) noexcept
-        {
-            return replace_unchecked<count>(new_value), error_status::success;
         }
 
         template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
         void replace_unchecked_impl(value_type new_value, Values... new_values) noexcept
         {
             this->buffer_[this->buffer_.size() - count] = new_value;
-            replace_unchecked_impl<count - 1uz>(new_values...);
+            this->template replace_unchecked_impl<count - 1uz>(new_values...);
+        }
+
+        template <size_type count>
+        error_status replace_impl() noexcept
+        {
+            if constexpr (count > 0uz)
+            {
+                return this->pop_n(count);
+            }
+            else
+            {
+                return error_status::success;
+            }
         }
 
         template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
@@ -623,7 +628,7 @@ namespace plapper
             else
             {
                 this->buffer_[this->buffer_.size() - count] = new_value;
-                return replace_impl<count - 1uz>(new_values...);
+                return this->template replace_impl<count - 1uz>(new_values...);
             }
         }
 
