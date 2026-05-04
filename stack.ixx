@@ -499,7 +499,7 @@ namespace plapper
         {
             assert(count > this->size());
 
-            replace_unchecked_impl<count>(new_values...);
+            this->template replace_unchecked_impl<count>(new_values...);
         }
 
         template <size_type count, stack_compatible_value<DefaultValue, FurtherValues...>... Values>
@@ -510,24 +510,26 @@ namespace plapper
 
             if constexpr (count >= sizeof...(new_values))
             {
-                return this->replace_unchecked_impl<count>(new_values...), error_status::success;
+                return this->template replace_unchecked_impl<count>(new_values...), error_status::success;
             }
             else
             {
-                return this->replace_impl<count>(new_values...);
+                return this->template replace_impl<count>(new_values...);
             }
-        }
-
-        template <size_type count>
-        void replace_with_range_unchecked(const auto& values)
-        {
-            std::apply([this](auto... args){ this->replace_unchecked<count>(args...); }, values);
         }
 
         template <size_type count>
         error_status replace_with_range(const auto& values)
         {
-            return std::apply([this](auto... args){ return this->replace<count>(args...); }, values);
+            return std::apply([this](auto... args){ return this->template replace<count>(args...); }, values);
+        }
+
+        template <size_type count>
+        error_status replace_with_range_unchecked(const auto& values)
+        {
+            std::apply([this](auto... args){ this->template replace_unchecked<count>(args...); }, values);
+
+            return error_status::success;
         }
 
         template <size_type count, typename Range>
@@ -536,7 +538,7 @@ namespace plapper
             if (!values)
                 values.error();
 
-            std::apply([this](auto... args){ this->replace_unchecked<count>(args...); }, *values);
+            std::apply([this](auto... args){ this->template replace_unchecked<count>(args...); }, *values);
 
             return error_status::success;
         }
