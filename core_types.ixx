@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <tuple>
 
 export module plapper:core_types;
 
@@ -20,6 +21,7 @@ namespace plapper
     export using flag_t  = std::uintptr_t;
     export using num_t   = std::intptr_t;
     export using val_t   = std::intptr_t;
+    export using nil_t   = std::tuple<>;
 
     struct execution_token
     {

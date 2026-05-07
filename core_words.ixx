@@ -84,7 +84,7 @@ namespace plapper
         return { n1 - n2 };
     }
 
-    std::tuple<> dot(environment& env, const int_t n) noexcept
+    nil_t dot(environment& env, const int_t n) noexcept
     {
         static constexpr auto buffer_size = std::numeric_limits<int_t>::digits10 + 2;
         static char buffer[buffer_size];
@@ -168,7 +168,7 @@ namespace plapper
         );
     }
 
-    std::tuple<> two_drop(const val_t, const val_t) noexcept
+    nil_t two_drop(const val_t, const val_t) noexcept
     {
         return {};
     }
@@ -328,14 +328,12 @@ namespace plapper
         );
     }
 
-    error_status allot(environment& env, const int_t n) noexcept
+    expected<nil_t> allot(environment& env, const int_t n) noexcept
     {
         if (const auto mem = env.dict.allot<byte_t>(n); !mem)
-            return mem.error();
+            return unexpected(mem.error());
 
-        env.dstack.pop_unchecked();
-
-        return error_status::success;
+        return {};
     }
 
     error_status and_(data_stack& dstack) noexcept
@@ -481,15 +479,14 @@ namespace plapper
         return dstack.select(value).and_then([&dstack](const auto x){ return dstack.push(x); });
     }
 
-    error_status emit(environment& env, const int_t x) noexcept
+    expected<nil_t> emit(environment& env, const val_t x) noexcept
     {
         if (x < 0 || x > 127)
-            return error_status::out_of_character_range;
+            return unexpected(error_status::out_of_character_range);
 
         env.term.write(static_cast<char>(x));
-        env.dstack.pop_unchecked();
 
-        return error_status::success;
+        return {};
     }
 
     error_status here(environment& env) noexcept
@@ -609,10 +606,11 @@ namespace plapper
         term.write(' ');
     }
 
-    void spaces(environment& env, const int_t n) noexcept
+    nil_t spaces(environment& env, const int_t n) noexcept
     {
         env.term.write_n(' ', n);
-        env.dstack.pop_unchecked();
+
+        return {};
     }
 
     error_status state(environment& env) noexcept

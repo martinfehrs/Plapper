@@ -22,4 +22,6 @@ namespace plapper
     export constexpr flag_t yes{ std::numeric_limits<flag_t>::max() };
     export constexpr flag_t no{ std::numeric_limits<flag_t>::min() };
 
+    export constexpr nil_t nil;
+
 }

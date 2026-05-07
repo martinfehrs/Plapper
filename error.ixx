@@ -44,4 +44,5 @@ namespace plapper
     using expected = std::expected<T, error_status>;
 
     using std::unexpected;
+
 }
