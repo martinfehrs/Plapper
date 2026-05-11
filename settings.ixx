@@ -27,7 +27,7 @@ namespace plapper
     export enum class modules
     {
         core_extension = 0x1,
-        programming_tools = 0x4,
+        programming_tools = 0x2,
     };
 
     export [[nodiscard]] constexpr auto operator|(const modules mod1, const modules mod2) noexcept
