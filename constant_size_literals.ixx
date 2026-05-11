@@ -24,10 +24,10 @@ export module plapper:constant_size_literals;
 namespace plapper
 {
 
-    template<char ...Chars>
+    template<char ...chars>
     consteval std::size_t parse_size()
     {
-        const char arr[] = {Chars...};
+        const char arr[]{ chars... };
 
         auto base = 10;
         auto offset = 0;
@@ -68,8 +68,8 @@ namespace plapper
     export template <std::size_t size>
     using size_constant = std::integral_constant<std::size_t, size>;
 
-    export template<char... Chars>
-    consteval size_constant<parse_size<Chars...>()> operator""_cuz()
+    export template<char... chars>
+    consteval size_constant<parse_size<chars...>()> operator""_cuz()
     {
         return {};
     }
