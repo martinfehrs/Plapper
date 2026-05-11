@@ -78,60 +78,6 @@ namespace plapper
             return interpreter{ std::move(*dict), std::move(*dstack), std::move(*rstack), std::move(*tib) };
         }
 
-        void interpret_instructions() noexcept
-        {
-            do
-            {
-                this->instruction_ptr++;
-
-                if (const auto stat = (***this->instruction_ptr)(*this, *this->instruction_ptr + 1);
-                    stat != error_status::success)
-                {
-                    this->handle_error(stat);
-                    this->instruction_ptr = nullptr;
-                }
-            }
-            while (this->running && this->instruction_ptr);
-        }
-
-        [[nodiscard]] std::string_view ask_for_input() noexcept
-        {
-            auto word = this->tib.read_word();
-
-            while (word.empty())
-            {
-                if (auto last_char = this->term.last_written_char(); last_char && *last_char != '\n')
-                    this->term.write('\n');
-
-                this->term.write(reset, dimmed, "> ");
-
-                if (const auto stat = this->tib.refill_from(this->term); stat != error_status::success)
-                {
-                    this->handle_error(stat);
-                    continue;
-                }
-
-                this->term.write(reset);
-                word = this->tib.read_word();
-            }
-
-            return word;
-        }
-
-        [[nodiscard]] static std::optional<int_t> word_as_number(const std::string_view word) noexcept
-        {
-            int_t value;
-
-            const auto[ptr, ec] = std::from_chars(
-                word.begin(), word.end(), value, 10
-            );
-
-            if (ec != std::errc{} || ptr != word.end())
-                return std::nullopt;
-
-            return value;
-        }
-
         int run(const int argc, const char** argv) noexcept
         {
             struct literal_t : execution_token
@@ -209,6 +155,60 @@ namespace plapper
         explicit interpreter(dictionary dict, data_stack dstack, return_stack rstack, input_buffer tib) noexcept
             : environment{ std::move(dict), std::move(dstack), std::move(rstack), std::move(tib) }
         { }
+
+        void interpret_instructions() noexcept
+        {
+            do
+            {
+                this->instruction_ptr++;
+
+                if (const auto stat = (***this->instruction_ptr)(*this, *this->instruction_ptr + 1);
+                    stat != error_status::success)
+                {
+                    this->handle_error(stat);
+                    this->instruction_ptr = nullptr;
+                }
+            }
+            while (this->running && this->instruction_ptr);
+        }
+
+        [[nodiscard]] std::string_view ask_for_input() noexcept
+        {
+            auto word = this->tib.read_word();
+
+            while (word.empty())
+            {
+                if (auto last_char = this->term.last_written_char(); last_char && *last_char != '\n')
+                    this->term.write('\n');
+
+                this->term.write(reset, dimmed, "> ");
+
+                if (const auto stat = this->tib.refill_from(this->term); stat != error_status::success)
+                {
+                    this->handle_error(stat);
+                    continue;
+                }
+
+                this->term.write(reset);
+                word = this->tib.read_word();
+            }
+
+            return word;
+        }
+
+        [[nodiscard]] static std::optional<int_t> word_as_number(const std::string_view word) noexcept
+        {
+            int_t value;
+
+            const auto[ptr, ec] = std::from_chars(
+                word.begin(), word.end(), value, 10
+            );
+
+            if (ec != std::errc{} || ptr != word.end())
+                return std::nullopt;
+
+            return value;
+        }
 
         void handle_error(const error_status status) noexcept
         {
