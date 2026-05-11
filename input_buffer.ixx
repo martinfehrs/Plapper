@@ -17,7 +17,6 @@
 module;
 
 #include <algorithm>
-#include <cstring>
 #include <istream>
 #include <ranges>
 
